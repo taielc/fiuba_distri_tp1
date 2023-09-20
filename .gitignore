@@ -1,0 +1,17 @@
+# Data
+.data/*
+!.data/README.md
+!.data/polars_queries.ipynb
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Distribution / packaging
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.venv
+.python-version
