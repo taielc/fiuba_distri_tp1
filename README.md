@@ -16,7 +16,7 @@ Indice:
   - [DAG de la solución](#dag-de-la-solución)
   - [Tareas](#tareas)
   - [Vistas](#vistas)
-    - [Escenarios](#escenarios)
+    - [Casos de Uso](#casos-de-uso)
       - [Caso de uso A](#caso-de-uso-a)
     - [Física](#física)
       - [Despliegue](#despliegue)
@@ -44,7 +44,7 @@ Indice:
 
 ## Vistas
 
-### Escenarios
+### Casos de Uso
 
 _[Volver al Indice](#indice)_
 
