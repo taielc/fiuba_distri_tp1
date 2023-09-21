@@ -1,0 +1,10 @@
+[tool.poetry]
+name = "common"
+version = "0.0.1"
+description = "Common para TP1"
+authors = ["taielc"]
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+geopy = "^2.4.0"

@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "tp1"
+version = "0.0.1"
+description = "TP1 de Sistemas Distribuidos I"
+authors = ["taielc"]
+readme = "README.md"
+packages = [{ include = "scripts" }]
+
+[tool.poetry.scripts]
+tp1 = "scripts.main:tp1"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+client = { path = "./client", develop = true }
+common = { path = "./common", develop = true }
+server = { path = "./server", develop = true }
+middleware = { path = "./middleware", develop = true }
+worker = { path = "./worker", develop = true }
+click = "^8.1.7"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+
+[tool.black]
+line-length = 80

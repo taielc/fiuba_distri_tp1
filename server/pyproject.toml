@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "server"
+version = "0.0.1"
+description = "Servere para TP1"
+authors = ["taielc"]
+packages = [{ include = "src" }]
+
+[tool.poetry.scripts]
+server = "src.main:main"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+common = { path = "../common", develop = true }
+middleware = { path = "../middleware", develop = true }
