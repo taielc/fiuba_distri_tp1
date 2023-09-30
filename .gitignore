@@ -15,3 +15,6 @@ __pycache__/
 # Environments
 .venv
 .python-version
+
+# VSCode
+.vscode/*
