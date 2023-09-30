@@ -1,6 +1,17 @@
 {
   "python.linting.enabled": true,
+  "pylint.args": [
+    "--max-line-length=80",
+  ],
+  "ruff.args": [
+    "--max-line-length=80",
+  ],
   "files.exclude": {
-    "**/*.egg-info": true
+    "**/*.egg-info": true,
+    "client/": true,
+    "common/": true,
+    "middleware/": true,
+    "server/": true,
+    "worker/": true,
   }
 }
