@@ -1,0 +1,28 @@
+{
+  "folders": [
+    {
+      "name": "tp1",
+      "path": "."
+    },
+    {
+      "name": "client",
+      "path": "client"
+    },
+    {
+      "name": "server",
+      "path": "server"
+    },
+    {
+      "name": "common",
+      "path": "common"
+    },
+    {
+      "name": "middleware",
+      "path": "middleware"
+    },
+    {
+      "name": "worker",
+      "path": "worker"
+    }
+  ]
+}
