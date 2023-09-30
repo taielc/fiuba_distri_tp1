@@ -11,3 +11,10 @@ client = "src.main:main"
 [tool.poetry.dependencies]
 python = ">=3.10"
 common = { path = "../common", develop = true }
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+
+[tool.black]
+line-length = 80

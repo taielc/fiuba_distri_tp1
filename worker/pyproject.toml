@@ -12,3 +12,9 @@ worker = "src.main:main"
 python = ">=3.10"
 common = { path = "../common", develop = true }
 middleware = { path = "../middleware", develop = true }
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+
+[tool.black]
+line-length = 80
