@@ -1,4 +1,5 @@
 {
+  "python.linting.enabled": true,
   "files.exclude": {
     "**/*.egg-info": true
   }
