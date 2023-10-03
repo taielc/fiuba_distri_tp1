@@ -9,9 +9,20 @@ from .utils import docker, BUILDABLE_PACKAGES, PACKAGES, paths
 
 
 def _run_on_package(package: str, command: str):
-    print(f"{package}> {command}")
+    wd = paths.TP1 / package
+    print(f"{wd} > {command}")
     environ["PACKAGE"] = package
-    run(command, shell=True, cwd=paths.TP1 / package, check=True)
+    current_env = environ.copy()
+    current_env.pop("VIRTUAL_ENV", None)
+    command = f"cd {wd} && {command}"
+    run(
+        command,
+        cwd=wd,
+        shell=True,
+        check=True,
+        start_new_session=True,
+        env=current_env,
+    )
 
 
 @click.group()

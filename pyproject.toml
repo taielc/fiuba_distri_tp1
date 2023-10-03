@@ -29,4 +29,4 @@ line-length = 80
 
 [tool.pylint]
 max-line-length = 80
-disable = "C0114,C0115,C0116"
+disable = "C0103,C0114,C0115,C0116"

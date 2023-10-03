@@ -102,22 +102,6 @@ files = [
 ]
 
 [[package]]
-name = "lib"
-version = "0.0.1"
-description = "lib para TP1"
-optional = false
-python-versions = ">=3.10"
-files = []
-develop = true
-
-[package.dependencies]
-geopy = "^2.4.0"
-
-[package.source]
-type = "directory"
-url = "tp1/lib"
-
-[[package]]
 name = "dill"
 version = "0.3.7"
 description = "serialize all of Python"
@@ -206,6 +190,22 @@ colors = ["colorama (>=0.4.3)"]
 pipfile-deprecated-finder = ["pip-shims (>=0.5.2)", "pipreqs", "requirementslib"]
 plugins = ["setuptools"]
 requirements-deprecated-finder = ["pip-api", "pipreqs"]
+
+[[package]]
+name = "lib"
+version = "0.0.1"
+description = "Lib para TP1"
+optional = false
+python-versions = ">=3.10"
+files = []
+develop = true
+
+[package.dependencies]
+geopy = "^2.4.0"
+
+[package.source]
+type = "directory"
+url = "tp1/lib"
 
 [[package]]
 name = "mccabe"
@@ -435,4 +435,4 @@ url = "tp1/worker"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10"
-content-hash = "fdc2213372e0e15f1985a8e1d2d4fe0db865328498ba6cba70db53c5008a9549"
+content-hash = "c29ca3e2067c91a9e7a83e0120e22cbad50c52f315a566b1c431d2c883d0ec18"
