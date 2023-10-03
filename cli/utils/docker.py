@@ -1,4 +1,3 @@
-from subprocess import run, PIPE
 from . import paths
 
 
@@ -17,9 +16,8 @@ INCLUDES = {
 }
 
 
-def build(package: str):
+def build_cmd(package: str):
     command = BASE_BUILD_COMMAND.format(
         package=package, include=INCLUDES[package]
     )
-    print(command)
-    run(command, shell=True, cwd=paths.ROOT)
+    return command

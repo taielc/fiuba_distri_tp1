@@ -89,7 +89,7 @@ class Socket:
 
 
 if __debug__:
-    from unittest.mock import Mock, call
+    from unittest.mock import Mock
     from pytest import fixture
 
     create_mock = Mock()

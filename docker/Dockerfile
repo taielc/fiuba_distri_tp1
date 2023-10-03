@@ -1,12 +1,11 @@
 ARG include
-ARG package
 
 FROM python:3.10 as tp1-poetry
 
-# RUN apt-get update && apt-get install -y curl
 RUN curl -sSL https://install.python-poetry.org | python -
 ENV PATH="${PATH}:/root/.local/bin"
 
+ARG package
 FROM tp1-poetry as tp1-include-lib
 
 COPY tp1/lib /tp1/lib

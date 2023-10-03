@@ -1,6 +1,6 @@
 """Client main."""
 
-from lib.tcp import Socket
+from tcp import Socket
 
 
 def main():

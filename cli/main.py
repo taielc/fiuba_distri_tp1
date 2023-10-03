@@ -17,19 +17,24 @@ def tp1():
     pass
 
 
-@tp1.command()
+@tp1.group("docker")
+def docker_():
+    pass
+
+
+@docker_.command("build")
 @click.argument(
     "package",
     type=click.Choice(BUILDABLE_PACKAGES),
     required=False,
 )
-def build_image(package: str):
+def docker_build(package: str):
     print(f"Creating image for {package}")
     if package is None:
-        for image in BUILDABLE_PACKAGES:
-            docker.build(image)
+        for package in BUILDABLE_PACKAGES:
+            _run_on_package(package, docker.build_cmd(package))
     else:
-        docker.build(package)
+        _run_on_package(package, docker.build_cmd(package))
 
 
 @tp1.command(
