@@ -1,25 +1,31 @@
 [tool.poetry]
-name = "tp1"
+name = "fiuba-distri-tp1"
 version = "0.0.1"
 description = "TP1 de Sistemas Distribuidos I"
 authors = ["taielc"]
 readme = "README.md"
-packages = [{ include = "scripts" }]
+packages = [{ include = "cli" }]
+include = ["docker-compose.yaml", { path = "docker" }, { path = "docs" }]
 
 [tool.poetry.scripts]
-tp1 = "scripts.main:tp1"
+tp1 = "cli.main:tp1"
 
 [tool.poetry.dependencies]
 python = ">=3.10"
-client = { path = "./client", develop = true }
-common = { path = "./common", develop = true }
-server = { path = "./server", develop = true }
-middleware = { path = "./middleware", develop = true }
-worker = { path = "./worker", develop = true }
+client = { path = "tp1/client", develop = true }
+lib = { path = "tp1/lib", develop = true }
+server = { path = "tp1/server", develop = true }
+middleware = { path = "tp1/middleware", develop = true }
+worker = { path = "tp1/worker", develop = true }
 click = "^8.1.7"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.9.1"
+pytest = "^7.4.2"
+pylint = "^3.0.0"
 
 [tool.black]
 line-length = 80
+
+[tool.pylint]
+max-line-length = 80

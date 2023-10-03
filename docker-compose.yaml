@@ -16,7 +16,7 @@ services:
     depends_on:
       - middleware
     volumes:
-      - ./common:/tp1/common
+      - ./lib:/tp1/lib
       - ./middleware:/tp1/middleware
       - ./server:/tp1/server
   
@@ -30,7 +30,7 @@ services:
       - server
     volumes:
       - ./.data:/tp1/.data
-      - ./common:/tp1/common
+      - ./lib:/tp1/lib
       - ./client:/tp1/client
 
   worker:
@@ -42,6 +42,6 @@ services:
     depends_on:
       - middleware
     volumes:
-      - ./common:/tp1/common
+      - ./lib:/tp1/lib
       - ./middleware:/tp1/middleware
       - ./worker:/tp1/worker
