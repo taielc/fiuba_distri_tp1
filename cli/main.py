@@ -1,15 +1,17 @@
 """Main scripts"""
 
-import click
-from subprocess import run
 from os import environ
+from subprocess import run
+import click
+
+
 from .utils import docker, BUILDABLE_PACKAGES, PACKAGES, paths
 
 
 def _run_on_package(package: str, command: str):
     print(f"{package}> {command}")
     environ["PACKAGE"] = package
-    run(command, shell=True, cwd=paths.TP1 / package)
+    run(command, shell=True, cwd=paths.TP1 / package, check=True)
 
 
 @click.group()
@@ -43,16 +45,24 @@ def docker_build(package: str):
         ignore_unknown_options=True,
     ),
 )
+@click.option(
+    "--exclude",
+    "-e",
+    multiple=True,
+    type=click.Choice(PACKAGES),
+)
 @click.argument(
     "args",
     nargs=-1,
     type=click.UNPROCESSED,
 )
-def for_each_do(args: tuple[str]):
+def for_each_do(exclude: str, args: tuple[str]):
     if not args:
         raise click.UsageError("No arguments provided")
     command = " ".join(args)
     for package in PACKAGES:
+        if package in exclude:
+            continue
         _run_on_package(package, command)
 
 

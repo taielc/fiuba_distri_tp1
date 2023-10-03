@@ -35,6 +35,7 @@
       "**/*.egg-info": true,
       "tp1/": true,
       "poetry.lock": true,
+      "poetry.toml": true,
       ".pytest_cache": true,
     }
   },
