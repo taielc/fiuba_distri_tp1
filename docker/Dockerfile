@@ -18,6 +18,6 @@ FROM tp1-include-${include} as final
 
 WORKDIR /tp1/${package}
 COPY tp1/${package} /tp1/${package}
-RUN poetry install --only main
+RUN poetry install
 
-ENTRYPOINT [ "poetry", "run", "${package}" ]
+ENTRYPOINT [ "poetry", "run", "main" ]

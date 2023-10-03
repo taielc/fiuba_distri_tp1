@@ -1,13 +1,17 @@
 """Server socket"""
 from socket import socket
 
-from ._factory import create_socket
-from ._socket import Socket
+from .factory import create_socket
+from .socket import Socket
 
 
 class PeerSocket(Socket):
     def __init__(self, sock: socket, addr: tuple[str, int]):
         super().__init__(addr[0], addr[1], lambda: sock)
+        self._connected = True
+
+    def __enter__(self) -> "PeerSocket":
+        return self
 
 
 class ServerSocket:

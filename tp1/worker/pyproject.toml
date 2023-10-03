@@ -6,7 +6,7 @@ authors = ["taielc"]
 packages = [{ include = "*", from = "src" }]
 
 [tool.poetry.scripts]
-worker = "worker.main:main"
+main = "worker.main:main"
 
 [tool.poetry.dependencies]
 python = ">=3.10"

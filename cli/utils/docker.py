@@ -5,7 +5,7 @@ BASE_BUILD_COMMAND = f"""docker build \\
     -f {paths.DOCKER}/Dockerfile \\
     --build-arg include={{include}} \\
     --build-arg package={{package}} \\
-    -t {{package}} \\
+    -t tp1-{{package}} \\
     {paths.ROOT}
 """
 

@@ -30,13 +30,14 @@
     "pylint.args": [
       "--max-line-length=80",
     ],
-    "python.defaultInterpreterPath": "./.venv/bin/python",
     "files.exclude": {
       "**/*.egg-info": true,
       "tp1/": true,
       "poetry.lock": true,
       "poetry.toml": true,
       ".pytest_cache": true,
+      ".vscode/": true,
+      ".venv/": true,
     }
   },
   "extensions": {

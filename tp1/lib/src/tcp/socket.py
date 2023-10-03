@@ -3,7 +3,7 @@ from socket import socket
 from typing import Callable
 import re
 
-from ._factory import create_socket
+from .factory import create_socket
 from .errors import SocketError
 
 
@@ -11,7 +11,7 @@ def _assert_connected(method):
     # add "PRE: is connected" to method docstring, before first doctest
 
     def wrapper(self: "Socket", *args, **kwargs):
-        if not self._connected: # pylint: disable=protected-access
+        if not self._connected:  # pylint: disable=protected-access
             raise SocketError("Not connected")
         return method(self, *args, **kwargs)
 
@@ -42,11 +42,13 @@ class Socket:
         self._connected = False
 
     def connect(self):
+        if self._connected:
+            raise SocketError("Already connected")
         self.sock.connect((self.host, self.port))
         self._connected = True
         return self
 
-    def __enter__(self):
+    def __enter__(self) -> "Socket":
         return self.connect()
 
     def __exit__(self, *args):
@@ -79,8 +81,9 @@ class Socket:
             size -= len(part)
         return b"".join(parts)
 
-    @_assert_connected
     def close(self):
+        if not self._connected:
+            return
         self.sock.close()
         self._connected = False
 
