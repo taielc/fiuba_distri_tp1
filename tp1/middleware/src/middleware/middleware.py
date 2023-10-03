@@ -1,4 +1,4 @@
-from middleware_type import MiddlewareType
+from .middleware_type import MiddlewareType
 
 
 class Middleware:

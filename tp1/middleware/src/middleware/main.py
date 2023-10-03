@@ -1,6 +1,6 @@
-from middleware import Middleware
-from publisher_consumer import PublisherConsumer
-from publisher_suscriber import PublisherSuscriber
+from .middleware import Middleware
+from .publisher_consumer import PublisherConsumer
+from .publisher_suscriber import PublisherSuscriber
 
 
 middleware1 = Middleware(PublisherSuscriber())
