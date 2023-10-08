@@ -1,5 +1,5 @@
 """Client socket implementation."""
-from socket import socket
+from socket import socket, gaierror
 from typing import Callable
 import re
 
@@ -44,7 +44,10 @@ class Socket:
     def connect(self):
         if self._connected:
             raise SocketError("Already connected")
-        self.sock.connect((self.host, self.port))
+        try:
+            self.sock.connect((self.host, self.port))
+        except gaierror:
+            raise SocketError(f"Invalid host: {self.host}")
         self._connected = True
         return self
 
