@@ -1,11 +1,11 @@
 from middleware import Middleware
 from publisher_consumer import PublisherConsumer
-from publisher_suscriber import PublisherSuscriber
+# from publisher_suscriber import PublisherSuscriber
 
+# middleware1 = Middleware(PublisherSuscriber())
+# middleware1.send_message("ffdsfds")
 
-middleware1 = Middleware(PublisherSuscriber())
-middleware2 = Middleware(PublisherConsumer())
+middleware2 = Middleware(PublisherConsumer("helloq"))
+middleware2.send_message("Hello World!")
 
-
-middleware1.send_message("ffdsfds")
-middleware2.send_message("vdsfdfv")
+middleware2.close_connection()
