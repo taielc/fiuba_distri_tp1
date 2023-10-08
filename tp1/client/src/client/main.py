@@ -1,12 +1,11 @@
 """Client main."""
 
-from tcp import Socket
+from .client import Client
 
 
 def main():
-    with Socket("server", 9000) as socket:
-        socket.send(b"Hello world!")
-        print(socket.recv(12))
+    client = Client()
+    client.run()
 
 
 if __name__ == "__main__":

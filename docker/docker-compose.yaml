@@ -34,7 +34,7 @@ services:
     depends_on:
       - server
     volumes:
-      - ../tp1/.data:/tp1/.data
+      - ../.data:/.data
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/client/src:/tp1/client/src
 
