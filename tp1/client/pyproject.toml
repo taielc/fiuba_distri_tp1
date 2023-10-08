@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "client"
+version = "0.0.1"
+description = "Cliente para TP1"
+authors = ["taielc"]
+packages = [{ include = "*", from = "src" }]
+
+[tool.poetry.scripts]
+main = "client.main:main"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+lib = { path = "../lib", develop = true }
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+pytest = "^7.4.2"
+pylint = "^3.0.0"
+
+[tool.black]
+line-length = 80
+
+[tool.pylint]
+max-line-length = 80
+disable = "C0114,C0115,C0116"

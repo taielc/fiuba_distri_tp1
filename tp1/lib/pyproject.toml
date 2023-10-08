@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "lib"
+version = "0.0.1"
+description = "Lib para TP1"
+authors = ["taielc"]
+packages = [{ include = "*", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+geopy = "^2.4.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+pytest = "^7.4.2"
+pylint = "^3.0.0"
+
+[tool.black]
+line-length = 80
+
+[tool.pylint]
+max-line-length = 80
+disable = "C0114,C0115,C0116"

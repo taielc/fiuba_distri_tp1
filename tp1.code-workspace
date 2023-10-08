@@ -6,23 +6,45 @@
     },
     {
       "name": "client",
-      "path": "client"
+      "path": "tp1/client"
     },
     {
-      "name": "server",
-      "path": "server"
-    },
-    {
-      "name": "common",
-      "path": "common"
+      "name": "lib",
+      "path": "tp1/lib"
     },
     {
       "name": "middleware",
-      "path": "middleware"
+      "path": "tp1/middleware"
+    },
+    {
+      "name": "server",
+      "path": "tp1/server"
     },
     {
       "name": "worker",
-      "path": "worker"
+      "path": "tp1/worker"
     }
-  ]
+  ],
+  "settings": {
+    "python.linting.enabled": true,
+    "pylint.args": [
+      "--max-line-length=80",
+    ],
+    "files.exclude": {
+      "**/*.egg-info": true,
+      "tp1/": true,
+      "poetry.lock": true,
+      "poetry.toml": true,
+      ".pytest_cache": true,
+      ".vscode/": true,
+      ".venv/": true,
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.pylint", // or charliermarsh.ruff
+      "ms-python.vscode-pylance",
+    ]
+  }
 }
