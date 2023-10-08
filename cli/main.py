@@ -16,7 +16,7 @@ from .utils import (
 
 def _run_on_package(package: str, command: str, chdir: bool = True):
     wd = paths.TP1 / package
-    print(f"{wd} > {command}")
+    print(f"{wd}$ {command}")
     environ["PACKAGE"] = package
     current_env = environ.copy()
     current_env.pop("VIRTUAL_ENV", None)
@@ -61,6 +61,22 @@ def docker_build(package: str):
         )
 
 
+def _docker_compose(exclude: tuple[str], args: tuple[str]):
+    command = " ".join(args)
+    if len(exclude) != 0:
+        packages = [p for p in RUNNABLE_PACKAGES if p not in exclude]
+        command = command + " " + " ".join(packages)
+    compose_path = paths.DOCKER / "docker-compose.yaml"
+    full_command = f"docker-compose -f {compose_path} {command}"
+    print(f"Running docker-compose:\n> {full_command}")
+    run(
+        full_command,
+        cwd=paths.ROOT,
+        shell=True,
+        check=True,
+        start_new_session=True,
+    )
+
 @docker_.command(
     "compose",
     context_settings=dict(
@@ -80,20 +96,29 @@ def docker_build(package: str):
     type=click.UNPROCESSED,
 )
 def docker_compose(exclude: tuple[str], args: tuple[str]):
-    command = " ".join(args)
-    if len(exclude) != 0:
-        packages = [p for p in RUNNABLE_PACKAGES if p not in exclude]
-        command = command + " " + " ".join(packages)
-    compose_path = paths.DOCKER / "docker-compose.yaml"
-    full_command = f"docker-compose -f {compose_path} {command}"
-    print(f"Running docker-compose:\n> {full_command}")
-    run(
-        full_command,
-        cwd=paths.ROOT,
-        shell=True,
-        check=True,
-        start_new_session=True,
-    )
+    _docker_compose(exclude, args)
+
+
+@tp1.command(
+    "dc",
+    context_settings=dict(
+        allow_extra_args=True,
+        ignore_unknown_options=True,
+    ),
+)
+@click.option(
+    "--exclude",
+    "-e",
+    multiple=True,
+    type=click.Choice(RUNNABLE_PACKAGES),
+)
+@click.argument(
+    "args",
+    nargs=-1,
+    type=click.UNPROCESSED,
+)
+def dc(exclude: tuple[str], args: tuple[str]):
+    _docker_compose(exclude, args)
 
 
 @tp1.command(
