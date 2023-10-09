@@ -1,6 +1,6 @@
 """Client main."""
 
-from .client import Client
+from client import Client
 
 
 def main():

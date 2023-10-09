@@ -1,6 +1,6 @@
 """Worker main."""
 
-from .worker_factory import WorkerFactory
+from worker import WorkerFactory
 
 
 def main():

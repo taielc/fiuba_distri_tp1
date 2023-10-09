@@ -4,7 +4,7 @@ from tcp import Socket
 from protocol import Protocol
 from config import SERVER_HOST, SERVER_PORT
 
-from .config import AIRPORTS_FILE, ITINERARIES_FILE
+from ._config import AIRPORTS_FILE, ITINERARIES_FILE
 from .state import State
 from .reader import Reader
 
