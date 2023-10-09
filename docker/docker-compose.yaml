@@ -1,7 +1,10 @@
 services:
-  middleware:
-    container_name: middleware
+  rabbitmq:
+    container_name: rabbitmq
     image: rabbitmq:3-management
+    environment:
+    - RABBITMQ_DEFAULT_USER=admin
+    - RABBITMQ_DEFAULT_PASS=admin
     ports:
       - "15672:15672"
       - "5672:5672"
@@ -15,8 +18,6 @@ services:
       args:
         - package=server
         - include=middleware
-    expose:
-      - 9000
     volumes:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/middleware/src:/tp1/middleware/src
@@ -38,8 +39,8 @@ services:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/client/src:/tp1/client/src
 
-  worker:
-    container_name: worker
+  base-filter:
+    container_name: base-filter
     image: tp1-worker
     build:
       context: ..
@@ -51,3 +52,8 @@ services:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/middleware/src:/tp1/middleware/src
       - ../tp1/worker/src:/tp1/worker/src
+    environment:
+      - WORKER_NAME=base-filter
+      - WORKER_TYPE=FILTER
+      - UPSTREAM_QUEUE=source
+      - DOWNSTREAM_QUEUE=results

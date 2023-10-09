@@ -1,8 +1,11 @@
 """Worker main."""
 
+from .worker_factory import WorkerFactory
+
 
 def main():
-    print("Hello worker!")
+    worker = WorkerFactory.create_worker()
+    worker.run()
 
 
 if __name__ == "__main__":

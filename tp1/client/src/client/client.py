@@ -43,9 +43,16 @@ class Client:
 
     def _send_file(self, sock: Socket, file: Path):
         print(f"client | sending file | {file}")
+        count = 0
         with file.open("rt") as f:
             for batch in Reader(f):
+                count += len(batch)
+                print("client | batch |", batch)
                 sock.send(Protocol.serialize_batch(batch))
+                if count % 10000 == 0:
+                    print(f"client | sent | {count}")
+                if count >= 10:
+                    break
             sock.send(Protocol.EOF_MESSAGE)
 
     def send_airports(self, sock: Socket):
