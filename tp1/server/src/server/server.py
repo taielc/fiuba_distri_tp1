@@ -77,10 +77,9 @@ class Server:
             Protocol.serialize_batch(["example;result1", "example;result2"])
         )
         while True:
-            message, post_hook = sink.get_message()
+            message = sink.get_message()
             if message is None:
                 continue
-            post_hook()
 
             header, results = Protocol.deserialize_msg(message)
             print(f"server | msg | {header} | {len(results)}")

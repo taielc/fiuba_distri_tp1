@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Callable
 
 
 class MiddlewareType(ABC):
@@ -8,7 +7,7 @@ class MiddlewareType(ABC):
         pass
 
     @abstractmethod
-    def get_message(self) -> [bytes, Callable[[bool], None]]:
+    def get_message(self):
         pass
 
     @abstractmethod
