@@ -12,5 +12,13 @@ class MiddlewareType(ABC):
         pass
 
     @abstractmethod
+    def send_ack(self):
+        pass
+
+    @abstractmethod
+    def send_nack(self):
+        pass
+
+    @abstractmethod
     def close_connection(self):
         pass

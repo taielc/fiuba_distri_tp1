@@ -49,12 +49,13 @@ class Filter:
 
     def run(self):
         while True:
-            message, post_hook = self.upstream.get_message()
+            message = self.upstream.get_message()
             if message is None:
                 print(f"{self.name} | no-message")
+                self.upstream.send_nack()
                 continue
-            post_hook()
 
+            self.upstream.send_ack()
             header, data = Protocol.deserialize_msg(message)
             if header == "EOF":
                 print(f"{self.name} | EOF")
