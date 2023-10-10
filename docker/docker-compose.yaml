@@ -22,6 +22,9 @@ services:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/middleware/src:/tp1/middleware/src
       - ../tp1/server/src:/tp1/server/src
+    depends_on:
+      - rabbitmq
+      - base-filter
   
   client:
     container_name: client

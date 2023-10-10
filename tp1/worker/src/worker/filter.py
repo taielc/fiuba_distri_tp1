@@ -27,6 +27,9 @@ class Filter:
         def parse_duration(duration):
             # PTxHyM -> x * 60 + y
             match = re.match(r"PT(\d+)H(\d+)M", duration)
+            if match is None:
+                print("filter | parsing error | duration |", duration)
+                return -1
             hours = int(match.group(1))
             minutes = int(match.group(2))
             return hours * 60 + minutes

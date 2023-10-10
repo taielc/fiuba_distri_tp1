@@ -1,5 +1,5 @@
 """Client socket implementation."""
-from socket import socket, gaierror
+from socket import socket, gaierror, MSG_DONTWAIT
 from typing import Callable
 import re
 
@@ -37,6 +37,7 @@ class Socket:
         factory: Callable[[], socket] = create_socket,
     ):
         self.sock = factory()
+        self.sock.settimeout(10)
         self.host = host
         self.port = port
         self._connected = False

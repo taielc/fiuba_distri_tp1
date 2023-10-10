@@ -15,31 +15,17 @@ class Server:
     def __init__(self, port: int = SERVER_PORT):
         self.port = port
         self.socket = ServerSocket("0.0.0.0", port)
-        self.state = State.INIT
-        # self.middleware = Middleware()
-        self._handlers = {
-            State.RECVING_AIRPORTS: self.recv_airports,
-            State.RECVING_ITINERARIES: self.recv_itineraries,
-            State.SENDING_RESULTS: self.send_results,
-        }
 
     def run(self):
         pipeline = Middleware(PublisherConsumer("source"))
         sink = Middleware(PublisherConsumer("results"))
         with self.socket.accept() as client_sock:
-            self.state = State.RECVING_AIRPORTS
-            self.run_state_machine(client_sock, pipeline, sink)
-
-    def run_state_machine(
-        self,
-        sock: Socket,
-        pipeline: Middleware,
-        sink: Middleware,
-    ):
-        while not self.state.is_done():
-            handler = self._handlers[self.state]
-            handler(sock, pipeline, sink)
-            self.state = self.state.get_next()
+            print("server | connected")
+            self.recv_airports(client_sock, pipeline)
+            self.recv_itineraries(client_sock, pipeline)
+            self.send_results(client_sock, sink)
+        self.socket.close()
+        print("server | disconnected")
 
     def _recv_file(
         self,
@@ -64,16 +50,13 @@ class Server:
         file: str,
         batch: list[str],
     ):
-        print("server | batch |", batch)
-        if file == "itineraries":
-            batch = list(map(lambda row: row.replace(",", ";"), batch))
-        pipeline.send_message(Protocol.serialize_msg(file, batch))
+        data = list(map(lambda row: row.split(";"), batch))
+        pipeline.send_message(Protocol.serialize_msg(file, data))
 
     def recv_airports(
         self,
         sock: Socket,
         pipeline: Middleware,
-        _sink: Middleware,
     ):
         self._recv_file("airports", sock, pipeline)
 
@@ -81,17 +64,18 @@ class Server:
         self,
         sock: Socket,
         pipeline: Middleware,
-        _sink: Middleware,
     ):
         self._recv_file("itineraries", sock, pipeline)
 
     def send_results(
         self,
         sock: Socket,
-        _pipeline: Middleware,
         sink: Middleware,
     ):
         print("server | results")
+        sock.send(
+            Protocol.serialize_batch(["example;result1", "example;result2"])
+        )
         while True:
             message, post_hook = sink.get_message()
             if message is None:
@@ -102,6 +86,5 @@ class Server:
             print(f"server | msg | {header} | {len(results)}")
             if header == "EOF":
                 break
-
             sock.send(Protocol.serialize_batch(results))
         sock.send(Protocol.EOF_MESSAGE)
