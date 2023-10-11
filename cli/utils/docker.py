@@ -1,4 +1,5 @@
 from . import paths
+from subprocess import run, CalledProcessError, PIPE
 
 
 BASE_BUILD_COMMAND = f"""docker build \\
@@ -21,3 +22,16 @@ def build_cmd(package: str):
         package=package, include=INCLUDES[package]
     )
     return command
+
+
+def is_running(container: str):
+    try:
+        run(
+            ["docker", "inspect", container],
+            check=True,
+            shell=False,
+            stdout=PIPE,
+        )
+        return True
+    except CalledProcessError:
+        return False

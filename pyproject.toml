@@ -8,7 +8,7 @@ packages = [{ include = "cli" }]
 include = ["docker-compose.yaml", { path = "docker" }, { path = "docs" }]
 
 [tool.poetry.scripts]
-tp1 = "cli.main:tp1"
+tp = "cli.main:tp1"
 
 [tool.poetry.dependencies]
 python = ">=3.10"

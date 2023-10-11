@@ -1,6 +1,42 @@
+version: '3'
+
+
+x-base_filter: &base_filter
+  image: tp1-worker
+  command: base_filter
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=1
+
+x-filter_by_stops: &filter_by_stops
+  image: tp1-worker
+  command: filter_by_stops
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=1
+
+
 services:
-  rabbitmq:
-    container_name: rabbitmq
+  middleware:
+    container_name: middleware
     image: rabbitmq:3-management
     environment:
     - RABBITMQ_DEFAULT_USER=admin
@@ -23,8 +59,7 @@ services:
       - ../tp1/middleware/src:/tp1/middleware/src
       - ../tp1/server/src:/tp1/server/src
     depends_on:
-      - rabbitmq
-      - base-filter
+      - middleware
   
   client:
     container_name: client
@@ -42,21 +77,16 @@ services:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/client/src:/tp1/client/src
 
-  base-filter:
-    container_name: base-filter
-    image: tp1-worker
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        - include=middleware
-        - package=worker
-    volumes:
-      - ../tp1/lib/src:/tp1/lib/src
-      - ../tp1/middleware/src:/tp1/middleware/src
-      - ../tp1/worker/src:/tp1/worker/src
-    environment:
-      - WORKER_NAME=base-filter
-      - WORKER_TYPE=FILTER
-      - UPSTREAM_QUEUE=source
-      - DOWNSTREAM_QUEUE=results
+  
+  
+  base_filter-1:
+    <<: *base_filter
+    container_name: "base_filter-1"
+  
+  
+  
+  filter_by_stops-1:
+    <<: *filter_by_stops
+    container_name: "filter_by_stops-1"
+  
+  

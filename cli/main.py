@@ -2,6 +2,7 @@
 
 from os import environ
 from subprocess import run
+from time import sleep
 import click
 
 
@@ -62,12 +63,9 @@ def docker_build(package: str):
         )
 
 
-def _docker_compose(exclude: tuple[str], args: tuple[str]):
+def _docker_compose(args: tuple[str]):
     command = " ".join(args)
-    if len(exclude) != 0:
-        packages = [p for p in RUNNABLE_PACKAGES if p not in exclude]
-        command = command + " " + " ".join(packages)
-    compose_path = paths.DOCKER / "docker-compose.yaml"
+    compose_path = paths.DOCKER / f"docker-compose.yaml"
     full_command = f"docker-compose -f {compose_path} {command}"
     print(f"Running docker-compose:\n> {full_command}")
     run(
@@ -86,19 +84,13 @@ def _docker_compose(exclude: tuple[str], args: tuple[str]):
         ignore_unknown_options=True,
     ),
 )
-@click.option(
-    "--exclude",
-    "-e",
-    multiple=True,
-    type=click.Choice(RUNNABLE_PACKAGES),
-)
 @click.argument(
     "args",
     nargs=-1,
     type=click.UNPROCESSED,
 )
-def docker_compose(exclude: tuple[str], args: tuple[str]):
-    _docker_compose(exclude, args)
+def docker_compose(args: tuple[str]):
+    _docker_compose(args)
 
 
 @tp1.command(
@@ -108,19 +100,13 @@ def docker_compose(exclude: tuple[str], args: tuple[str]):
         ignore_unknown_options=True,
     ),
 )
-@click.option(
-    "--exclude",
-    "-e",
-    multiple=True,
-    type=click.Choice(RUNNABLE_PACKAGES),
-)
 @click.argument(
     "args",
     nargs=-1,
     type=click.UNPROCESSED,
 )
-def dc(exclude: tuple[str], args: tuple[str]):
-    _docker_compose(exclude, args)
+def dc(args: tuple[str]):
+    _docker_compose(args)
 
 
 @tp1.command(
@@ -150,17 +136,35 @@ def for_each_do(exclude: tuple[str], args: tuple[str]):
         _run_on_package(package, command)
 
 
-@tp1.command()
-def build():
-    docker_compose_file = paths.DOCKER / "docker-compose-dev.yaml"
+def _generate_docker_compose_dev(worker_counts: list[tuple[str, int]] = []):
+    docker_compose_file = paths.DOCKER / "docker-compose.yaml"
     with docker_compose_file.open("w") as f:
         f.write(
             render_template(
                 paths.DOCKER / "docker-compose-dev.yaml.j2",
-                filters=[("base_filter", 2)],
+                workers=worker_counts,
             )
         )
     print("Successfully built", docker_compose_file.relative_to(paths.ROOT))
+
+
+@tp1.command(
+    context_settings=dict(
+        allow_extra_args=True,
+        ignore_unknown_options=True,
+    ),
+)
+@click.argument(
+    "args",
+    nargs=-1,
+    type=click.UNPROCESSED,
+)
+def build(args: tuple[str]):
+    worker_counts = [
+        (args[i].lstrip("--").replace("-", "_"), int(args[i + 1]))
+        for i in range(0, len(args), 2)
+    ]
+    _generate_docker_compose_dev(worker_counts)
 
 
 @tp1.command()
@@ -175,6 +179,89 @@ def reset_middleware():
         check=True,
         start_new_session=True,
     )
+
+
+@tp1.command(
+    "run",
+    context_settings=dict(
+        allow_extra_args=True,
+        ignore_unknown_options=True,
+    ),
+)
+@click.argument(
+    "args",
+    nargs=-1,
+    type=click.UNPROCESSED,
+)
+def run_tp1(args: tuple[str]):
+    """
+    tp1 run --worker-a 2 --worker-b 2
+    """
+    worker_counts = [
+        (args[i].lstrip("--").replace("-", "_"), int(args[i + 1]))
+        for i in range(0, len(args), 2)
+    ]
+    _generate_docker_compose_dev(worker_counts)
+    if not docker.is_running("middleware"):
+        _docker_compose(("up", "-d", "middleware"))
+        sleep(5)
+    services = tuple(
+        f"{worker}-{i}"
+        for worker, count in worker_counts
+        for i in range(1, count + 1)
+    ) + ("client", "server")
+    _docker_compose(("up", "-d") + services)
+    print("Check logs with:")
+    print(
+        "docker compose -f docker/docker-compose.yaml logs -f "
+        + " ".join(services)
+    )
+    with open(paths.ROOT / "cli/tmp/running_services.txt", "w") as f:
+        f.write("\n".join(services))
+
+
+def _stop(rm: bool):
+    with open(paths.ROOT / "cli/tmp/running_services.txt") as f:
+        services = f.read().splitlines()
+    _docker_compose(("stop",) + tuple(services))
+    print("Stopped services")
+    if rm:
+        _docker_compose(("rm", "-f") + tuple(services))
+        print("Removed services")
+
+@tp1.command()
+@click.option(
+    "--rm",
+    is_flag=True,
+    help="Remove containers after stopping",
+)
+def stop(rm: bool):
+    _stop(rm)
+
+
+@tp1.command()
+@click.option(
+    "--rm",
+    is_flag=True,
+    help="Remove containers after stopping",
+)
+def restart(rm: bool):
+    _stop(rm)
+    with open(paths.ROOT / "cli/tmp/running_services.txt") as f:
+        services = f.read().splitlines()
+    _docker_compose(("up", "-d") + tuple(services))
+
+
+@tp1.command()
+def down():
+    run(
+        "docker exec -it middleware bash -c " "'rabbitmqctl stop_app'",
+        cwd=paths.ROOT,
+        shell=True,
+        check=True,
+        start_new_session=True,
+    )
+    _docker_compose(("down", "-v", "--remove-orphans"))
 
 
 if __name__ == "__main__":

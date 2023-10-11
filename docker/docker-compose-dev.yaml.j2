@@ -1,3 +1,23 @@
+version: '3'
+
+{% for worker, replicas in workers %}
+x-{{ worker }}: &{{ worker }}
+  image: tp1-worker
+  command: {{ worker }}
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS={{ replicas }}
+{% endfor %}
+
 services:
   middleware:
     container_name: middleware
@@ -41,22 +61,10 @@ services:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/client/src:/tp1/client/src
 
-  {% for filter, replicas in filters %}
-  {{ filter }}:
-    image: tp1-worker
-    command: {{ filter }}
-    deploy:
-      replicas: {{ replicas }}
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        - include=middleware
-        - package=worker
-    volumes:
-      - ../tp1/lib/src:/tp1/lib/src
-      - ../tp1/middleware/src:/tp1/middleware/src
-      - ../tp1/worker/src:/tp1/worker/src
-    environment:
-      - REPLICAS={{ replicas }}
+  {% for worker, replicas in workers %}
+  {% for replica in range(1, replicas + 1) %}
+  {{ worker }}-{{ replica }}:
+    <<: *{{ worker }}
+    container_name: "{{ worker }}-{{ replica }}"
+  {% endfor %}
   {% endfor %}
