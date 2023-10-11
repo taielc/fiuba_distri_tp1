@@ -1,12 +1,9 @@
 from logging import getLogger
 
 from config import SERVER_PORT
-from middleware import Middleware, PublisherConsumer
+from middleware import Middleware, PublisherConsumer, PublisherSuscriber
 from protocol import Protocol
 from tcp import ServerSocket, Socket
-
-from .state import State
-
 
 log = getLogger(__name__)
 
@@ -20,7 +17,7 @@ class Server:
 
     def run(self):
         pipeline = Middleware(PublisherConsumer("source"))
-        self.sink = Middleware(PublisherConsumer("results"))
+        self.sink = Middleware(PublisherSuscriber("q_results", "results"))
         with self.socket.accept() as client_sock:
             print("server | connected")
             self.client_sock = client_sock
@@ -81,6 +78,8 @@ class Server:
 
         self.sink.get_message(self.handle_message)
 
+        self.sink.close_connection()
+
     def handle_message(
             self,
             message,
@@ -96,5 +95,6 @@ class Server:
         print(f"server | msg | {header} | {len(results)}")
         if header == "EOF":
             self.client_sock.send(Protocol.EOF_MESSAGE)
+            self.sink.close_connection()
             return
         self.client_sock.send(Protocol.serialize_batch(results))

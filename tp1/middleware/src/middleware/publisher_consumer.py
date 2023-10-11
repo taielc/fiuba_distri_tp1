@@ -15,12 +15,12 @@ class PublisherConsumer(MiddlewareType):
             )
         )
         self.channel = self.connection.channel()
-        self.channel.basic_qos(prefetch_count=1)
 
         self._queue_name = queue_name
         self.handle_message = None
 
         self.channel.queue_declare(queue=self._queue_name, auto_delete=True)
+        self.channel.basic_qos(prefetch_count=1)
 
     def send_message(self, message: str):
         self.channel.basic_publish(
@@ -31,12 +31,11 @@ class PublisherConsumer(MiddlewareType):
         self.handle_message = handle_message
 
         def callback(channel, method, properties, body):
-            # self.handle_message(body, method.delivery_tag)
+            self.handle_message(body, method.delivery_tag)
             print(body)
             print()
-            channel.basic_ack(delivery_tag=method.delivery_tag)
 
-        self.channel.basic_consume(queue=self._queue_name, on_message_callback=callback, auto_ack=False)
+        self.channel.basic_consume(queue=self._queue_name, on_message_callback=callback)
 
         self.channel.start_consuming()
 
@@ -47,4 +46,5 @@ class PublisherConsumer(MiddlewareType):
         self.channel.basic_nack(delivery_tag=delivery_tag)
 
     def close_connection(self):
+        self.channel.stop_consuming()
         self.connection.close()

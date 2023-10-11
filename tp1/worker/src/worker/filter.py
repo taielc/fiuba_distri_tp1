@@ -60,7 +60,6 @@ class Filter:
         header, data = Protocol.deserialize_msg(message)
         if header == "EOF":
             print(f"{self.name} | EOF")
-            # add basic cancel
             self.upstream.close_connection()
             self.downstream.close_connection()
             return
