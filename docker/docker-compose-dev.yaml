@@ -1,0 +1,61 @@
+services:
+  middleware:
+    container_name: middleware
+    image: rabbitmq:3-management
+    environment:
+    - RABBITMQ_DEFAULT_USER=admin
+    - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+
+  server:
+    container_name: server
+    image: tp1-server
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - package=server
+        - include=middleware
+    volumes:
+      - ../tp1/lib/src:/tp1/lib/src
+      - ../tp1/middleware/src:/tp1/middleware/src
+      - ../tp1/server/src:/tp1/server/src
+    depends_on:
+      - middleware
+  
+  client:
+    container_name: client
+    image: tp1-client
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - package=client
+        - include=lib
+    depends_on:
+      - server
+    volumes:
+      - ../.data:/.data
+      - ../tp1/lib/src:/tp1/lib/src
+      - ../tp1/client/src:/tp1/client/src
+
+  
+  base_filter:
+    container_name: base_filter
+    image: tp1-worker
+    command: base_filter
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - include=middleware
+        - package=worker
+    volumes:
+      - ../tp1/lib/src:/tp1/lib/src
+      - ../tp1/middleware/src:/tp1/middleware/src
+      - ../tp1/worker/src:/tp1/worker/src
+    environment:
+      - WORKER_NAME=base_filter
+  

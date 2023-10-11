@@ -3,3 +3,4 @@ from .packages import (
     RUNNABLE_PACKAGES,
     PACKAGES,
 )
+from .template_parser import render_template

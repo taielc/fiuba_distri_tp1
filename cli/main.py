@@ -11,6 +11,7 @@ from .utils import (
     RUNNABLE_PACKAGES,
     PACKAGES,
     paths,
+    render_template,
 )
 
 
@@ -76,6 +77,7 @@ def _docker_compose(exclude: tuple[str], args: tuple[str]):
         check=True,
         start_new_session=True,
     )
+
 
 @docker_.command(
     "compose",
@@ -146,6 +148,33 @@ def for_each_do(exclude: tuple[str], args: tuple[str]):
         if package in exclude:
             continue
         _run_on_package(package, command)
+
+
+@tp1.command()
+def build():
+    docker_compose_file = paths.DOCKER / "docker-compose-dev.yaml"
+    with docker_compose_file.open("w") as f:
+        f.write(
+            render_template(
+                paths.DOCKER / "docker-compose-dev.yaml.j2",
+                filters=["base_filter"],
+            )
+        )
+    print("Successfully built", docker_compose_file.relative_to(paths.ROOT))
+
+
+@tp1.command()
+def reset_middleware():
+    run(
+        "docker exec -it middleware bash -c "
+        "'rabbitmqctl stop_app; "
+        "rabbitmqctl reset; "
+        "rabbitmqctl start_app'",
+        cwd=paths.ROOT,
+        shell=True,
+        check=True,
+        start_new_session=True,
+    )
 
 
 if __name__ == "__main__":
