@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from config import SERVER_PORT
+from config import SERVER_PORT, Queues
 from middleware_v2 import MiddlewareV2
 from protocol import Protocol
 from tcp import ServerSocket, Socket
@@ -14,8 +14,8 @@ class Server:
         self.socket = ServerSocket("0.0.0.0", port)
         self.client_sock = None
         self.sink = None
-        self.downstream = "source"
-        self.results = "results"
+        self.downstream = Queues.FLIGHTS_RAW
+        self.results = Queues.RESULTS
 
     def run(self):
         middleware = MiddlewareV2()
@@ -25,7 +25,9 @@ class Server:
             self.client_sock = client_sock
             self.recv_airports(client_sock, middleware)
             self.recv_itineraries(client_sock, middleware)
-            middleware.push(self.downstream, Protocol.serialize_msg("EOF", [[0]]))
+            middleware.push(
+                self.downstream, Protocol.serialize_msg("EOF", [[0]])
+            )
             self.send_results(client_sock, middleware)
         self.socket.close()
         print("server | disconnected", flush=True)
@@ -76,7 +78,7 @@ class Server:
         msg: bytes,
     ):
         header, data = Protocol.deserialize_msg(msg)
-        print(f"server | msg | {header} | {len(data)}")
+        print(f"server | msg | {header} | {len(data)}", flush=True)
         if header == "EOF":
             self.client_sock.send(Protocol.EOF_MESSAGE)
             mid.cancel(self.results)
@@ -91,7 +93,9 @@ class Server:
     ):
         print("server | results", flush=True)
         sock.send(
-            Protocol.serialize_batch(["example;result1", "example;result2"])
+            Protocol.serialize_batch(
+                [["example", "result1"], ["example", "result2"]]
+            )
         )
         middleware.start()
 

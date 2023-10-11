@@ -1,9 +1,9 @@
 from middleware_v2 import MiddlewareV2
 from protocol import Protocol
+from config import Queues, Subs
 import re
-from os import getenv
 
-SCALE = int(getenv("SCALE", 1))
+from ._config import REPLICAS
 
 
 def filter_airport(data):
@@ -46,8 +46,8 @@ def filter_itinerary(data):
 
 
 def main():
-    upstream = "source"
-    downstream = "results"
+    upstream = Queues.FLIGHTS_RAW
+    downstream = Subs.FLIGHTS
 
     def consume(mid: MiddlewareV2, msg: bytes):
         header, data = Protocol.deserialize_msg(msg)
@@ -55,18 +55,15 @@ def main():
         shape = (len(data), len(data[0]))
         print(f"base_filter | received | {header} | {shape}")
         if header == "EOF":
-            stopped = int(data[0][0])
-            print(f"base_filter | EOF | stopped | {stopped}")
-            if stopped < SCALE:
+            stopped = int(data[0][0]) + 1
+            print(f"base_filter | {header} | {stopped}/{REPLICAS}")
+            if stopped < REPLICAS:
                 mid.push(
                     upstream,
-                    Protocol.serialize_msg(header, [[stopped + 1]]),
+                    Protocol.serialize_msg(header, [[stopped]]),
                 )
             else:
-                mid.push(
-                    downstream,
-                    Protocol.serialize_msg(header, data),
-                )
+                mid.push(downstream, Protocol.serialize_msg(header, [[0]]))
             mid.cancel(upstream)
             return
 
@@ -75,12 +72,12 @@ def main():
         elif header == "itineraries":
             data = filter_itinerary(data)
 
-        msg = Protocol.serialize_msg(header, data)
-        mid.push(downstream, msg)
+        mid.push(downstream, Protocol.serialize_msg(header, data))
 
     middleware = MiddlewareV2()
 
     middleware.consume(upstream, consume)
+    middleware.declare(downstream)
 
-    print("base_filter | middleware starting", flush=True)
     middleware.start()
+    middleware.close()

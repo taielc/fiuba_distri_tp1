@@ -2,6 +2,8 @@ import pika
 from pika.exchange_type import ExchangeType
 from typing import Callable
 
+from config import Queues, Subs
+
 
 class MiddlewareV2:
     def __init__(
@@ -32,43 +34,73 @@ class MiddlewareV2:
 
         return wrapper
 
+    def _declare_queue(self, queue: Queues):
+        return self.channel.queue_declare(
+            queue=queue.value, auto_delete=True
+        ).method.queue
+    
+    def _declare_exchange(self, exchange: Subs):
+        self.channel.exchange_declare(
+            exchange=exchange.value,
+            exchange_type=ExchangeType.fanout,
+        ).method
+        return exchange.value
+
+    def declare(self, name: Queues | Subs) -> str:
+        if isinstance(name, Queues):
+            return self._declare_queue(name)
+        elif isinstance(name, Subs):
+            return self._declare_exchange(name)
+        else:
+            raise TypeError(f"Invalid type for name: {type(name)}")
+
     def consume(
-        self, queue: str, callback: Callable[["MiddlewareV2", bytes], None]
-    ):
+        self,
+        queue: Queues,
+        callback: Callable[["MiddlewareV2", bytes], None],
+    ) -> str:
         """Create a queue and return its name."""
-        method_frame = self.channel.queue_declare(queue=queue, auto_delete=True)
-        queue = method_frame.method.queue
+        queue_name = self._declare_queue(queue)
         self.consumer_tags[queue] = self.channel.basic_consume(
-            queue=queue,
+            queue=queue_name,
             on_message_callback=self._wrap_callback(callback),
         )
         return queue
 
-    def subscribe(self, topic: str, callback: Callable):
-        queue = self.consume("", callback)
-        self.channel.exchange_declare(
-            exchange=topic,
-            exchange_type=ExchangeType.topic,
-            passive=True,
-        )
-        self.channel.queue_bind(exchange=topic, queue=queue)
+    def subscribe(
+        self,
+        name: Subs,
+        queue: Queues,
+    ):
+        """Subscribe to a topic, return the queue name."""
+        queue_name = queue.value
+        exchange_name = self._declare_exchange(name)
+        self.channel.queue_bind(exchange=exchange_name, queue=queue_name)
+        print(f"middleware | subscribed | {name} | {queue_name}")
+        return exchange_name, queue_name
 
-    def cancel(self, queue: str):
-        self.channel.basic_cancel(self.consumer_tags[queue])
+    def cancel(self, name: Queues):
+        self.channel.basic_cancel(self.consumer_tags[name.value])
 
-    def publish(self, topic: str, message: str):
+    def push(self, name: Queues | Subs, msg: bytes):
+        if isinstance(name, Queues):
+            routing_key = name.value
+            exchange = ""
+        elif isinstance(name, Subs):
+            exchange = name.value
+            routing_key = ""
+        else:
+            raise TypeError(f"Invalid type for name: {type(name)}")
         self.channel.basic_publish(
-            exchange=topic,
-            routing_key="",
-            body=message,
-        )
-
-    def push(self, queue: str, message: str):
-        self.channel.basic_publish(
-            exchange="",
-            routing_key=queue,
-            body=message,
+            exchange=exchange,
+            routing_key=routing_key,
+            body=msg,
         )
 
     def start(self):
+        print("middleware | starting", flush=True)
         self.channel.start_consuming()
+
+    def close(self):
+        self.channel.stop_consuming()
+        self.connection.close()
