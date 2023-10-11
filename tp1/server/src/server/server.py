@@ -15,15 +15,18 @@ class Server:
     def __init__(self, port: int = SERVER_PORT):
         self.port = port
         self.socket = ServerSocket("0.0.0.0", port)
+        self.client_sock = None
+        self.sink = None
 
     def run(self):
         pipeline = Middleware(PublisherConsumer("source"))
-        sink = Middleware(PublisherConsumer("results"))
+        self.sink = Middleware(PublisherConsumer("results"))
         with self.socket.accept() as client_sock:
             print("server | connected")
+            self.client_sock = client_sock
             self.recv_airports(client_sock, pipeline)
             self.recv_itineraries(client_sock, pipeline)
-            self.send_results(client_sock, sink)
+            self.send_results(client_sock)
         self.socket.close()
         print("server | disconnected")
 
@@ -70,20 +73,28 @@ class Server:
     def send_results(
         self,
         sock: Socket,
-        sink: Middleware,
     ):
         print("server | results")
         sock.send(
             Protocol.serialize_batch(["example;result1", "example;result2"])
         )
-        while True:
-            message = sink.get_message()
-            if message is None:
-                continue
 
-            header, results = Protocol.deserialize_msg(message)
-            print(f"server | msg | {header} | {len(results)}")
-            if header == "EOF":
-                break
-            sock.send(Protocol.serialize_batch(results))
-        sock.send(Protocol.EOF_MESSAGE)
+        self.sink.get_message(self.handle_message)
+
+    def handle_message(
+            self,
+            message,
+            delivery_tag
+    ):
+        print("message is: ", message)
+        if message is None:
+            self.sink.send_nack(delivery_tag)
+            return
+
+        self.sink.send_ack(delivery_tag)
+        header, results = Protocol.deserialize_msg(message)
+        print(f"server | msg | {header} | {len(results)}")
+        if header == "EOF":
+            self.client_sock.send(Protocol.EOF_MESSAGE)
+            return
+        self.client_sock.send(Protocol.serialize_batch(results))

@@ -48,25 +48,28 @@ class Filter:
         return [filter_row(row) for row in data]
 
     def run(self):
-        while True:
-            message = self.upstream.get_message()
-            if message is None:
-                print(f"{self.name} | no-message")
-                continue
+        self.upstream.get_message(self.handle_message)
 
-            header, data = Protocol.deserialize_msg(message)
-            if header == "EOF":
-                print(f"{self.name} | EOF")
-                break
+    def handle_message(self, message, delivery_tag):
+        if message is None:
+            print(f"{self.name} | no-message")
+            self.upstream.send_nack(delivery_tag)
+            return
 
-            print(f"{self.name} | {header} | {data}")
+        self.upstream.send_ack(delivery_tag)
+        header, data = Protocol.deserialize_msg(message)
+        if header == "EOF":
+            print(f"{self.name} | EOF")
+            # add basic cancel
+            self.upstream.close_connection()
+            self.downstream.close_connection()
+            return
 
-            if header == "airports":
-                data = self.filter_airport(data)
-            elif header == "itineraries":
-                data = self.filter_itinerary(data)
+        print(f"{self.name} | {header} | {data}")
 
-            self.downstream.send_message(Protocol.serialize_msg(header, data))
+        if header == "airports":
+            data = self.filter_airport(data)
+        elif header == "itineraries":
+            data = self.filter_itinerary(data)
 
-        self.upstream.close_connection()
-        self.downstream.close_connection()
+        self.downstream.send_message(Protocol.serialize_msg(header, data))

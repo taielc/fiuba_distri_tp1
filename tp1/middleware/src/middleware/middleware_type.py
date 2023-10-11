@@ -7,15 +7,15 @@ class MiddlewareType(ABC):
         pass
 
     @abstractmethod
-    def get_message(self):
+    def get_message(self, handle_message):
         pass
 
     @abstractmethod
-    def send_ack(self):
+    def send_ack(self, delivery_tag):
         pass
 
     @abstractmethod
-    def send_nack(self):
+    def send_nack(self, delivery_tag):
         pass
 
     @abstractmethod

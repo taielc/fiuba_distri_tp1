@@ -18,6 +18,7 @@ class PublisherConsumer(MiddlewareType):
         self.channel.basic_qos(prefetch_count=1)
 
         self._queue_name = queue_name
+        self.handle_message = None
 
         self.channel.queue_declare(queue=self._queue_name, auto_delete=True)
 
@@ -26,18 +27,18 @@ class PublisherConsumer(MiddlewareType):
             exchange="", routing_key=self._queue_name, body=message
         )
 
-    def get_message(self):
-        method_frame, _, body = self.channel.basic_get(
-            queue=self._queue_name
-        )
-        if not method_frame:
-            return None
+    def get_message(self, handle_message):
+        self.handle_message = handle_message
 
-        if body is None:
-            self.send_nack(method_frame.delivery_tag)
+        def callback(channel, method, properties, body):
+            # self.handle_message(body, method.delivery_tag)
+            print(body)
+            print()
+            channel.basic_ack(delivery_tag=method.delivery_tag)
 
-        self.send_ack(method_frame.delivery_tag)
-        return body
+        self.channel.basic_consume(queue=self._queue_name, on_message_callback=callback, auto_ack=False)
+
+        self.channel.start_consuming()
 
     def send_ack(self, delivery_tag):
         self.channel.basic_ack(delivery_tag=delivery_tag)
