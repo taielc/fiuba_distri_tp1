@@ -80,11 +80,7 @@ class Server:
 
         self.sink.close_connection()
 
-    def handle_message(
-            self,
-            message,
-            delivery_tag
-    ):
+    def handle_message(self, message, delivery_tag):
         print("message is: ", message)
         if message is None:
             self.sink.send_nack(delivery_tag)
