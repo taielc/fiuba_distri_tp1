@@ -22,3 +22,6 @@ __pycache__/
 
 # ENV
 .env
+
+# Docker dev
+docker/docker-compose-dev.yaml
