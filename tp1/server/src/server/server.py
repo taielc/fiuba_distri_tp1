@@ -1,7 +1,7 @@
 from logging import getLogger
 
 from config import SERVER_PORT
-from middleware import Middleware, PublisherConsumer, PublisherSuscriber
+from middleware_v2 import MiddlewareV2
 from protocol import Protocol
 from tcp import ServerSocket, Socket
 
@@ -14,71 +14,86 @@ class Server:
         self.socket = ServerSocket("0.0.0.0", port)
         self.client_sock = None
         self.sink = None
+        self.downstream = "source"
+        self.results = "results"
 
     def run(self):
-        pipeline = Middleware(PublisherConsumer("source"))
-        self.sink = Middleware(PublisherSuscriber("q_results", "results"))
+        middleware = MiddlewareV2()
+        middleware.consume(self.results, self._consume_results)
         with self.socket.accept() as client_sock:
-            print("server | connected")
+            print("server | connected", flush=True)
             self.client_sock = client_sock
-            self.recv_airports(client_sock, pipeline)
-            self.recv_itineraries(client_sock, pipeline)
-            self.send_results(client_sock)
+            self.recv_airports(client_sock, middleware)
+            self.recv_itineraries(client_sock, middleware)
+            middleware.push(self.downstream, Protocol.serialize_msg("EOF", [[0]]))
+            self.send_results(client_sock, middleware)
         self.socket.close()
-        print("server | disconnected")
+        print("server | disconnected", flush=True)
 
     def _recv_file(
         self,
         file: str,
         sock: Socket,
-        pipeline: Middleware,
+        middleware: MiddlewareV2,
     ):
-        print(f"server | receiving | {file}")
+        print(f"server | receiving | {file}", flush=True)
         received = 0
         while True:
             batch = Protocol.receive_batch(sock)
             if batch is None:
-                print(f"server | EOF | {file}")
+                print(f"server | EOF | {file}", flush=True)
                 break
             received += len(batch)
-            self.process_batch(pipeline, file, batch)
-        print(f"server | received | {file} | {received}")
+            self.process_batch(middleware, file, batch)
+        print(f"server | received | {file} | {received}", flush=True)
 
     def process_batch(
         self,
-        pipeline: Middleware,
+        middleware: MiddlewareV2,
         file: str,
         batch: list[str],
     ):
         data = list(map(lambda row: row.split(";"), batch))
-        pipeline.send_message(Protocol.serialize_msg(file, data))
+        middleware.push(self.downstream, Protocol.serialize_msg(file, data))
 
     def recv_airports(
         self,
         sock: Socket,
-        pipeline: Middleware,
+        middleware: MiddlewareV2,
     ):
-        self._recv_file("airports", sock, pipeline)
+        self._recv_file("airports", sock, middleware)
 
     def recv_itineraries(
         self,
         sock: Socket,
-        pipeline: Middleware,
+        middleware: MiddlewareV2,
     ):
-        self._recv_file("itineraries", sock, pipeline)
+        self._recv_file("itineraries", sock, middleware)
+
+    def _consume_results(
+        self,
+        mid: MiddlewareV2,
+        msg: bytes,
+    ):
+        header, data = Protocol.deserialize_msg(msg)
+        print(f"server | msg | {header} | {len(data)}")
+        if header == "EOF":
+            self.client_sock.send(Protocol.EOF_MESSAGE)
+            mid.cancel(self.results)
+            return
+
+        self.client_sock.send(Protocol.serialize_batch(data))
 
     def send_results(
         self,
         sock: Socket,
+        middleware: MiddlewareV2,
     ):
-        print("server | results")
+        print("server | results", flush=True)
         sock.send(
             Protocol.serialize_batch(["example;result1", "example;result2"])
         )
-
-        self.sink.get_message(self.handle_message)
-
-        self.sink.close_connection()
+        middleware.start()
 
     def handle_message(self, message, delivery_tag):
         print("message is: ", message)

@@ -41,11 +41,12 @@ services:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/client/src:/tp1/client/src
 
-  {% for filter in filters %}
+  {% for filter, replicas in filters %}
   {{ filter }}:
-    container_name: {{ filter }}
     image: tp1-worker
     command: {{ filter }}
+    deploy:
+      replicas: {{ replicas }}
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -57,5 +58,5 @@ services:
       - ../tp1/middleware/src:/tp1/middleware/src
       - ../tp1/worker/src:/tp1/worker/src
     environment:
-      - WORKER_NAME={{ filter }}
+      - REPLICAS={{ replicas }}
   {% endfor %}

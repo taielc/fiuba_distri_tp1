@@ -28,6 +28,7 @@ class Client:
             self.send_airports(sock)
             self.send_itineraries(sock)
             self.recv_results(sock)
+        print("client | closed connection", flush=True)
 
     def _send_file(self, sock: Socket, file: Path):
         print(f"client | sending file | {file}")
@@ -54,9 +55,10 @@ class Client:
             try:
                 data = Protocol.receive_batch(sock)
             except TimeoutError:
-                print("client | timeout")
+                print("client | timeout", flush=True)
                 continue
             if data is None:
                 break
             for result in data:
-                print(result)
+                print(result, flush=True)
+        sock.send(Protocol.ACK_MESSAGE)

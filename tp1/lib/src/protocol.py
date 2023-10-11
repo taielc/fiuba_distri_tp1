@@ -10,6 +10,7 @@ _VALUE_SEP = ";"
 
 class Protocol:
     EOF_MESSAGE = ser_int(0)
+    ACK_MESSAGE = ser_int(0)
 
     @staticmethod
     def serialize_batch(batch: list[str]) -> bytes:

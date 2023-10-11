@@ -37,7 +37,7 @@ class Socket:
         factory: Callable[[], socket] = create_socket,
     ):
         self.sock = factory()
-        self.sock.settimeout(10)
+        self.sock.settimeout(5)
         self.host = host
         self.port = port
         self._connected = False

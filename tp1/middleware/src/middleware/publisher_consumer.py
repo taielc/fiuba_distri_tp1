@@ -10,7 +10,7 @@ class PublisherConsumer(MiddlewareType):
     def __init__(self, queue_name: str):
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
-                host=RABBITMQ_HOST,
+                host="middleware",
                 credentials=pika.PlainCredentials("admin", "admin"),
             )
         )

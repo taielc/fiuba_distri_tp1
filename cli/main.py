@@ -157,7 +157,7 @@ def build():
         f.write(
             render_template(
                 paths.DOCKER / "docker-compose-dev.yaml.j2",
-                filters=["base_filter"],
+                filters=[("base_filter", 2)],
             )
         )
     print("Successfully built", docker_compose_file.relative_to(paths.ROOT))
