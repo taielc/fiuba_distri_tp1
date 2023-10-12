@@ -1,10 +1,12 @@
 from protocol import Protocol
 
+from ._config import REPLICAS
 
-def stop_consuming(filter_name, replicas, data, header, upstream, downstream):
+
+def stop_consuming(filter_name, data, header, upstream, downstream):
     stopped = int(data[0][0]) + 1
     print(f"{filter_name} | {header} | {stopped}/{REPLICAS}", flush=True)
-    if stopped < replicas:
+    if stopped < REPLICAS:
         upstream.send_message(
             Protocol.serialize_msg(header, [[stopped]]),
         )

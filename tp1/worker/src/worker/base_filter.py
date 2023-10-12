@@ -5,8 +5,6 @@ from middleware import Middleware
 from middleware.publisher_consumer import PublisherConsumer
 from middleware.publisher_suscriber import PublisherSuscriber
 
-
-from ._config import REPLICAS
 from ._utils import stop_consuming
 
 
@@ -69,7 +67,7 @@ def main():
         shape = (len(data), len(data[0]))
         print(f"{filter_name} | received | {header} | {shape}")
         if header == "EOF":
-            stop_consuming(filter_name, REPLICAS, data, header, upstream, downstream)
+            stop_consuming(filter_name, data, header, upstream, downstream)
 
         if header == "airports":
             data = filter_airport(data)

@@ -4,7 +4,6 @@ from middleware import Middleware
 from middleware.publisher_consumer import PublisherConsumer
 from middleware.publisher_suscriber import PublisherSuscriber
 
-from ._config import REPLICAS
 from ._utils import stop_consuming
 
 
@@ -24,7 +23,7 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stop_consuming(filter_name, REPLICAS, data, header, upstream, downstream)
+            stop_consuming(filter_name, data, header, upstream, downstream)
 
         if header == "airports":
             print(
