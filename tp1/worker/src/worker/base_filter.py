@@ -25,17 +25,17 @@ def filter_itinerary(data):
         # PTzM -> z
         # PxDT -> x * 24 * 60
         # PTyH -> y * 60
-        match = re.match(
-            r"P((?P<days>\d+)DT)?((?P<hours>\d+)H)?((?P<minutes>\d+)M)?",
-            duration,
-        )
+        patron = re.compile(r'P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?$')
+
+        match = patron.match(duration)
+
         if match is None:
             print("filter | parsing error | duration |", duration)
             return -1
-        groups = match.groupdict("0")
-        days = int(groups["days"])
-        hours = int(groups["hours"])
-        minutes = int(groups["minutes"])
+
+        days = int(match.group(1) or 0)
+        hours = int(match.group(2) or 0)
+        minutes = int(match.group(3) or 0)
         return days * 24 * 60 + hours * 60 + minutes
 
     def filter_row(row):
