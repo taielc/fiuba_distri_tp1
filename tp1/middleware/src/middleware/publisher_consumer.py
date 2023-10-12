@@ -18,7 +18,7 @@ class PublisherConsumer(MiddlewareType):
         self._queue_name = queue_name
         self.handle_message = None
 
-        self.channel.queue_declare(queue=self._queue_name, auto_delete=True)
+        self.channel.queue_declare(queue=self._queue_name)
         self.channel.basic_qos(prefetch_count=1)
 
     def send_message(self, message: str):

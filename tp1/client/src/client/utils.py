@@ -13,7 +13,9 @@ def build_itineraries_file(
         return full_itineraries_file
     from subprocess import run
 
-    output_file = data_dir / f"itineraries_{n}.csv"
+    output_file = data_dir / f"tmp/itineraries_{n}.csv"
+    if output_file.exists():
+        return output_file
     with open(output_file, "w") as out:
         run(
             [

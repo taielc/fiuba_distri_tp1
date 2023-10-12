@@ -1,7 +1,4 @@
 """General client config."""
-from typing import Optional
-from pathlib import Path
-
 from paths import ROOT_DIR
 from config import DATASET_SIZE
 

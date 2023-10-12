@@ -24,9 +24,8 @@ class Client:
 
     def run(self):
         print("client | state | INIT")
-        from time import sleep
-
-        sleep(2)
+        
+        print(f"client | connecting | {self.host}:{self.port}")
         with Socket(self.host, self.port) as sock:
             print("client | connected")
             self.send_airports(sock)
