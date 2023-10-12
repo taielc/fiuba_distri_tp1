@@ -14,6 +14,7 @@ class Server:
         self.socket = ServerSocket("0.0.0.0", port)
         self.client_sock = None
         self.sink = None
+        self.query_amount = 4
 
     def run(self):
         sink = Middleware(ProducerConsumer(Queues.RESULTS))
@@ -94,13 +95,15 @@ class Server:
             sink.send_ack(delivery_tag)
             header, results = Protocol.deserialize_msg(message)
             if header == "EOF":
+                self.query_amount -= 1
                 # EOF | [["queryX"]]
                 query = results[0][0]
                 finished[query] = True
-                print(
-                    f"server | EOF | {query} | {finished} | {stats[query]}",
-                    flush=True,
-                )
+                if self.query_amount != 0 and query == stats.keys():
+                    print(
+                        f"server | EOF | {query} | {finished} | {stats[query]}",
+                        flush=True,
+                    )
                 if all(finished.values()):
                     sock.send(Protocol.EOF_MESSAGE)
                     sink.close_connection()

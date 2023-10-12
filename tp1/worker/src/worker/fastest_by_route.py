@@ -12,9 +12,8 @@ def main():
     upstream = Middleware(ProducerConsumer(Queues.TOP_2_FASTESTS_BY_ROUTE))
     results = Middleware(ProducerConsumer(Queues.RESULTS))
 
-    top_2_fastest = {}
-
     def consume(msg: bytes, delivery_tag: int):
+        top_2_fastest = {}
 
         if msg is None:
             print(f"{WORKER_TYPE} | no-message")
@@ -25,14 +24,21 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stop_consuming(WORKER_TYPE, data, header, upstream, results, "query3")
-            acc_results = [flight for flights in top_2_fastest.values() for flight in flights]
-            results.send_message(Protocol.serialize_msg(header, acc_results))
+            stop_consuming(
+                WORKER_TYPE,
+                data,
+                header,
+                upstream,
+                results,
+                result="query3",)
             return
 
         while data:
             new_flight = data.pop()
             top_2_fastest_by_route(top_2_fastest, new_flight)
+        
+        acc_results = [flight for flights in top_2_fastest.values() for flight in flights]
+        results.send_message(Protocol.serialize_msg("query3", acc_results))
 
     print(f"{WORKER_TYPE} | READY", flush=True)
     upstream.get_message(consume)
