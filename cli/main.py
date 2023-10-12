@@ -188,12 +188,17 @@ def reset_middleware():
         ignore_unknown_options=True,
     ),
 )
+@click.option(
+    "--build",
+    is_flag=True,
+    help="Build docker images",
+)
 @click.argument(
     "args",
     nargs=-1,
     type=click.UNPROCESSED,
 )
-def run_tp1(args: tuple[str]):
+def run_tp1(build: bool, args: tuple[str]):
     """
     tp1 run --worker-a 2 --worker-b 2
     """
@@ -210,7 +215,7 @@ def run_tp1(args: tuple[str]):
         for worker, count in worker_counts
         for i in range(1, count + 1)
     ) + ("client", "server")
-    _docker_compose(("up", "-d") + services)
+    _docker_compose(("up", "-d", "--build" if build else "") + services)
     print("Check logs with:")
     print(
         "docker compose -f docker/docker-compose.yaml logs -f "

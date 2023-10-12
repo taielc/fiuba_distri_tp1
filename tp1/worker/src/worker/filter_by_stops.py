@@ -1,6 +1,8 @@
 from config import Queues, Subs
-from middleware_v2 import MiddlewareV2
 from protocol import Protocol
+from middleware import Middleware
+from middleware.publisher_consumer import PublisherConsumer
+from middleware.publisher_suscriber import PublisherSubscriber
 
 from ._config import REPLICAS
 
@@ -10,7 +12,11 @@ def main():
     upstream = Queues.FILTER_BY_STOPS
     downstream = Queues.RESULTS
 
-    def consume(mid: MiddlewareV2, msg: bytes):
+
+    upstream = Middleware(PublisherSubscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS))
+    downstream = Middleware(PublisherConsumer(Queues.RESULTS))
+
+    def consume(msg: bytes):
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
@@ -19,14 +25,13 @@ def main():
                 f"filter_by_stops | {header} | {stopped}/{REPLICAS}", flush=True
             )
             if stopped < REPLICAS:
-                mid.push(
-                    subscription,
+                upstream.send_message(
                     Protocol.serialize_msg(header, [[stopped]]),
                 )
             else:
-                print(f"filter_by_stops | sending | EOF", flush=True)
-                mid.push(downstream, Protocol.serialize_msg(header, [[0]]))
-            mid.cancel(upstream)
+                print("filter_by_stops | sending | EOF", flush=True)
+                downstream.send_message(Protocol.serialize_msg(header, [[0]]))
+            upstream.close_connection()
             return
 
         if header == "airports":
@@ -50,13 +55,8 @@ def main():
         print(f"filter_by_stops | kept | {len(rows_with_stops)}", flush=True)
         if not rows_with_stops:
             return
-        mid.push(downstream, Protocol.serialize_msg(header, rows_with_stops))
+        downstream.send_message(Protocol.serialize_msg(header, rows_with_stops))
 
-    mid = MiddlewareV2()
-    mid.consume(upstream, consume)
-    mid.subscribe(subscription, upstream)
-    mid.declare(downstream)
+    upstream.get_message(consume)
 
     print("filter_by_stops | running")
-    mid.start()
-    mid.close()

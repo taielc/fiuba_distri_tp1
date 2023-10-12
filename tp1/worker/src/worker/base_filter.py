@@ -1,7 +1,8 @@
-from middleware_v2 import MiddlewareV2
 from protocol import Protocol
 from config import Queues, Subs
 import re
+from middleware import Middleware, PublisherConsumer, PublisherSubscriber
+
 
 from ._config import REPLICAS
 
@@ -46,10 +47,12 @@ def filter_itinerary(data):
 
 
 def main():
-    upstream = Queues.FLIGHTS_RAW
-    downstream = Subs.FLIGHTS
+    upstream = Middleware(PublisherConsumer(Queues.FLIGHTS_RAW))
+    downstream = Middleware(
+        PublisherSubscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS)
+    )
 
-    def consume(mid: MiddlewareV2, msg: bytes):
+    def consume(msg: bytes):
         header, data = Protocol.deserialize_msg(msg)
 
         shape = (len(data), len(data[0]))
@@ -58,13 +61,12 @@ def main():
             stopped = int(data[0][0]) + 1
             print(f"base_filter | {header} | {stopped}/{REPLICAS}")
             if stopped < REPLICAS:
-                mid.push(
-                    upstream,
+                upstream.send_message(
                     Protocol.serialize_msg(header, [[stopped]]),
                 )
             else:
-                mid.push(downstream, Protocol.serialize_msg(header, [[0]]))
-            mid.cancel(upstream)
+                downstream.send_message(Protocol.serialize_msg(header, [[0]]))
+            upstream.close_connection()
             return
 
         if header == "airports":
@@ -72,12 +74,6 @@ def main():
         elif header == "itineraries":
             data = filter_itinerary(data)
 
-        mid.push(downstream, Protocol.serialize_msg(header, data))
+        downstream.send_message(Protocol.serialize_msg(header, data))
 
-    middleware = MiddlewareV2()
-
-    middleware.consume(upstream, consume)
-    middleware.declare(downstream)
-
-    middleware.start()
-    middleware.close()
+    upstream.get_message(consume)

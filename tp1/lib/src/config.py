@@ -12,28 +12,14 @@ DEFAULT_INT_SIZE = 4
 DEFAULT_ENCODING = "utf-8"
 
 
-class Queues(str, Enum):
-    """Common queues names.
-
-    Use as `str(Queues.NAME)`
-    """
-
+class Queues:
     RESULTS = "results"
     FLIGHTS_RAW = "flights-raw"
     FILTER_BY_STOPS = "filter-by-stops"
 
-    def __str__(self):
-        return self.value
 
 
-class Subs(str, Enum):
-    """Common subscription names.
-
-    Use as `str(Subs.NAME)`
-    """
-
+class Subs:
     AIRPORTS = "airports"
     FLIGHTS = "flights"
 
-    def __str__(self):
-        return self.value
