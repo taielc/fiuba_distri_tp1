@@ -16,10 +16,9 @@ class Queues:
     RESULTS = "results"
     FLIGHTS_RAW = "flights-raw"
     FILTER_BY_STOPS = "filter-by-stops"
-
+    TOP_2_FASTEST = "top_2_fastest_flights_by_route"
 
 
 class Subs:
     AIRPORTS = "airports"
     FLIGHTS = "flights"
-

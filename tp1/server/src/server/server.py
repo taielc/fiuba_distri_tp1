@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from config import SERVER_PORT
+from config import SERVER_PORT, Queues, Subs
 from middleware import Middleware, PublisherConsumer, PublisherSuscriber
 from protocol import Protocol
 from tcp import ServerSocket, Socket
@@ -16,8 +16,8 @@ class Server:
         self.sink = None
 
     def run(self):
-        pipeline = Middleware(PublisherConsumer("source"))
-        self.sink = Middleware(PublisherSuscriber("q_results", "results"))
+        pipeline = Middleware(PublisherConsumer(Queues.FLIGHTS_RAW))
+        self.sink = Middleware(PublisherConsumer(Queues.RESULTS))
         with self.socket.accept() as client_sock:
             print("server | connected")
             self.client_sock = client_sock
@@ -80,7 +80,7 @@ class Server:
 
         self.sink.close_connection()
 
-    def handle_message(self, message, delivery_tag):
+    def handle_message(self, message: bytes, delivery_tag: int):
         print("message is: ", message)
         if message is None:
             self.sink.send_nack(delivery_tag)
