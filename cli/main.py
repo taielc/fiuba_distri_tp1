@@ -215,6 +215,30 @@ def _get_worker_counts() -> list[tuple[str, int]]:
         ]
 
 
+QUERY_DEFAULTS = [
+    ["base_filter"],  # [0] base
+    ["filter_by_stops"],
+    ["dist_calculator"],
+    ["filter_by_stops", "partial_route_agg", "fastest_by_route"],
+    ["general_avg_price", "filter_by_price", "price_by_route"],
+]
+FILTER_DEFAULTS = {
+    # 0
+    "base_filter": 2,
+    # 1
+    "filter_by_stops": 2,  # & 3
+    # 2
+    "dist_calculator": 1,
+    # 3
+    "partial_route_agg": 1,
+    "fastest_by_route": 1,
+    # 4
+    "general_avg_price": 1,
+    "filter_by_price": 1,
+    "price_by_route": 1,
+}
+
+
 @tp1.command(
     "run",
     context_settings=dict(
@@ -227,19 +251,35 @@ def _get_worker_counts() -> list[tuple[str, int]]:
     is_flag=True,
     help="Build docker images",
 )
+@click.option(
+    "--query",
+    "-q",
+    multiple=True,
+    type=click.Choice(list(map(str, range(1, 5)))),
+    help="Queries to run (--query 1 -q 2)",
+)
 @click.argument(
     "args",
     nargs=-1,
     type=click.UNPROCESSED,
 )
-def run_tp1(build: bool, args: tuple[str]):
+def run_tp1(build: bool, query: tuple[str], args: tuple[str]):
     """
     tp1 run --worker-a 2 --worker-b 2
     """
-    worker_counts = [
-        (args[i].lstrip("--").replace("-", "_"), int(args[i + 1]))
-        for i in range(0, len(args), 2)
-    ]
+    if query:
+        queries = ("0",) + query
+        workers = set(
+            worker for query in queries for worker in QUERY_DEFAULTS[int(query)]
+        )
+        worker_counts = [
+            (worker, FILTER_DEFAULTS[worker]) for worker in workers
+        ]
+    else:
+        worker_counts = [
+            (args[i].lstrip("--").replace("-", "_"), int(args[i + 1]))
+            for i in range(0, len(args), 2)
+        ]
     _generate_docker_compose_dev(worker_counts)
     if not docker.is_running("middleware"):
         _docker_compose(("up", "-d", "middleware"))
@@ -348,6 +388,7 @@ def client(local: bool, build: bool):
         f"--volume {paths.TP1}/client/src/:/tp1/client/src/:rw",
         "tp1-client",
     ]
+    print(" \\\n  ".join(cmd))
     run(
         " \\\n  ".join(cmd),
         check=True,

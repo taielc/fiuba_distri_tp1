@@ -30,7 +30,7 @@ def filter_itinerary(data):
         match = patron.match(duration)
 
         if match is None:
-            print("filter | parsing error | duration |", duration)
+            print("parsing error | duration |", duration)
             return -1
 
         days = int(match.group(1) or 0)
@@ -63,7 +63,7 @@ def main():
 
     def consume(msg: bytes, delivery_tag: int):
         if msg is None:
-            print(f"{WORKER_NAME} | no-message")
+            print("no-message")
             upstream.send_nack(delivery_tag)
             return
 
@@ -71,7 +71,13 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stop_consuming(WORKER_NAME, data, header, upstream, downstream)
+            stop_consuming(
+                WORKER_NAME,
+                data,
+                header,
+                upstream,
+                downstream,
+            )
             return
 
         stats["processed"] += len(data)
@@ -82,8 +88,8 @@ def main():
 
         downstream.send_message(Protocol.serialize_msg(header, data))
 
-    print(f"{WORKER_NAME} | READY", flush=True)
+    print("READY", flush=True)
     upstream.get_message(consume)
 
     for stat, value in stats.items():
-        print(f"{stat}", value, flush=True)
+        print(f"{stat} | {value}", flush=True)

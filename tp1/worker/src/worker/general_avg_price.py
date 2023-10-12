@@ -19,6 +19,7 @@ def main():
     upstream = Middleware(
         ProducerSubscriber(Subs.FLIGHTS, Queues.GENERAL_AVG_PRICE)
     )
+    downstream = Middleware(Publisher(Subs.AVG_PRICE))
 
     stats = {
         "processed": 0,
@@ -34,7 +35,28 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            print(f"{WORKER_NAME} | airports | EOF", flush=True)
+            print("flights | EOF", flush=True)
+            stopped = int(data[0][0]) + 1
+            print(f"{header} | {stopped}/{REPLICAS}", flush=True)
+            print(data, flush=True)
+            if len(data) == 1:
+                results = [stats["sum_price"], stats["processed"]]
+            else:
+                results = [
+                    int(data[1][0]) + stats["sum_price"],
+                    int(data[1][1]) + stats["processed"],
+                ]
+            if stopped < REPLICAS:
+                print(f"partial | {results[0] / results[1]}", flush=True)
+                upstream.send_message(
+                    Protocol.serialize_msg(header, [[stopped], results]),
+                )
+            else:
+                print(f"final | {results[0] / results[1]}", flush=True)
+                print("sending | EOF", flush=True)
+                downstream.send_message(
+                    Protocol.serialize_msg(header, [[0], results])
+                )
             upstream.close_connection()
             return
 
@@ -42,16 +64,8 @@ def main():
         for row in data:
             stats["sum_price"] += int(row[4] or "0")
 
-    print(f"{WORKER_NAME} | READY", flush=True)
+    print("READY", flush=True)
     upstream.get_message(consume)
 
-    downstream = Middleware(Publisher(Subs.AVG_PRICE))
-    downstream.send_message(
-        Protocol.serialize_msg(
-            "avg_price", [[REPLICAS, stats["sum_price"], stats["processed"]]]
-        )
-    )
-
-    stats["avg_price"] = round(stats["sum_price"] / stats["processed"] / 100, 2)
     for stat, value in stats.items():
-        print(f"{WORKER_NAME} | {stat} |", value, flush=True)
+        print(f"{stat} | {value}", flush=True)

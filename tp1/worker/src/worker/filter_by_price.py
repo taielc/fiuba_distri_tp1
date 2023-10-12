@@ -1,10 +1,11 @@
 from collections import defaultdict
 
 from middleware import Middleware, ProducerConsumer, ProducerSubscriber
-from config import Queues, Subs
+from config import Queues, Subs, BATCH_SIZE
 from protocol import Protocol
 
 from ._config import REPLICAS
+from ._utils import stop_consuming
 
 
 def parse_coordinates(lat: str, lon: str):
@@ -22,7 +23,7 @@ def main():
         ProducerSubscriber(Subs.FLIGHTS, Queues.FILTER_BY_PRICE)
     )
     avg_price = Middleware(ProducerSubscriber(Subs.AVG_PRICE, exclusive=True))
-    downstream = Middleware(ProducerConsumer(Queues.RESULTS))
+    downstream = Middleware(ProducerConsumer(Queues.PRICE_BY_ROUTE))
 
     stats = {
         "processed": 0,
@@ -31,6 +32,55 @@ def main():
         "rows_count": 0,
     }
     routes_prices = defaultdict(list)
+
+    def consume_avg_price(msg: bytes, delivery_tag: int):
+        if msg is None:
+            avg_price.send_nack(delivery_tag)
+            return
+        avg_price.send_ack(delivery_tag)
+
+        header, (_, results) = Protocol.deserialize_msg(msg)
+        assert header == "EOF"
+
+        stats["sum_price"] = int(results[0])
+        stats["rows_count"] = int(results[1])
+
+        avg_price.close_connection()
+
+    def send_downstream():
+        # is in x100
+        avg_price_value = stats["sum_price"] / stats["rows_count"]
+        print("avg_price_value |", avg_price_value, flush=True)
+
+        final = []
+        stats["total"] = 0
+        for route in routes_prices:
+            filtered = [
+                price
+                for price in routes_prices[route]
+                if price > avg_price_value
+            ]
+            if not filtered:
+                continue
+            final.append(
+                [
+                    route[0],
+                    route[1],
+                    max(filtered),
+                    sum(filtered),
+                    len(filtered),
+                ]
+            )
+            if len(final) == BATCH_SIZE:
+                stats["total"] += len(final)
+                downstream.send_message(Protocol.serialize_msg("routes", final))
+                final = []
+        if final:
+            stats["total"] += len(final)
+            downstream.send_message(Protocol.serialize_msg("routes", final))
+
+        print("processed |", stats["processed"], flush=True)
+        print("total |", stats["total"], flush=True)
 
     def consume(msg: bytes, delivery_tag: int):
         if msg is None:
@@ -41,8 +91,17 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            print(f"{WORKER_NAME} | airports | EOF", flush=True)
-            flights.close_connection()
+            print("airports | EOF", flush=True)
+            avg_price.get_message(consume_avg_price)
+            send_downstream()
+            stop_consuming(
+                WORKER_NAME,
+                data,
+                header,
+                flights,
+                downstream,
+                "query4",
+            )
             return
 
         stats["processed"] += len(data)
@@ -51,55 +110,7 @@ def main():
                 continue
             routes_prices[(row[1], row[2])].append(int(row[4]))
 
-    print(f"{WORKER_NAME} | READY", flush=True)
+    print("READY", flush=True)
     flights.get_message(consume)
-    print(f"{WORKER_NAME} | processed |", stats["processed"], flush=True)
 
-    def consume_avg_price(msg: bytes, delivery_tag: int):
-        if msg is None:
-            avg_price.send_nack(delivery_tag)
-            return
-        avg_price.send_ack(delivery_tag)
-
-        header, data = Protocol.deserialize_msg(msg)
-        assert header == "avg_price"
-
-        replicas, partial_sum_price, partial_rows_count = data[0]
-
-        if stats["countdown"] is None:
-            stats["countdown"] = int(replicas)
-        stats["countdown"] -= 1
-
-        stats["sum_price"] += int(partial_sum_price)
-        stats["rows_count"] += int(partial_rows_count)
-
-        if stats["countdown"] == 0:
-            avg_price.close_connection()
-
-    avg_price.get_message(consume_avg_price)
-
-    avg_price_value = stats["sum_price"] / stats["rows_count"]
-    # is in x100
-
-    final = []
-    for route in routes_prices:
-        filtered = [
-            price for price in routes_prices[route] if price > avg_price_value
-        ]
-        if not filtered:
-            continue
-        final.append(
-            [
-                route[0],
-                route[1],
-                max(filtered),
-                round(sum(filtered) / len(filtered) / 100, 2),
-            ]
-        )
-
-    print(f"{WORKER_NAME} | sending | EOF", flush=True)
-    downstream.send_message(Protocol.serialize_msg("query4", final))
-    downstream.send_message(
-        Protocol.serialize_msg("EOF", [["query4"], [REPLICAS]])
-    )
     downstream.close_connection()
