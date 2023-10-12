@@ -1,23 +1,21 @@
 from config import Queues, Subs, MIN_STOPS_COUNT
 from protocol import Protocol
-from middleware import Middleware
-from middleware.publisher_consumer import PublisherConsumer
-from middleware.publisher_suscriber import PublisherSuscriber
+from middleware import Middleware, ProducerConsumer, ProducerSubscriber
 
 from ._utils import stop_consuming
 
+WORKER_TYPE = "filter_by_stops"
+from ._config import REPLICAS
+
 
 def main():
-<<<<<<< HEAD
-    upstream = Middleware(PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS))
-    downstream = Middleware(PublisherConsumer(Queues.TOP_2_FASTEST))
-    # results = Middleware(PublisherConsumer(Queues.RESULTS))
-=======
+
+    downstream = Middleware(ProducerConsumer(Queues.PARTIAL_ROUTE_AGG))
     upstream = Middleware(
-        PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS)
+        ProducerSubscriber(Subs.FLIGHTS, Queues.FILTER_BY_STOPS)
     )
-    downstream = Middleware(PublisherConsumer(Queues.RESULTS))
->>>>>>> 709b70c15c8c8e98153cb26c4865df4a072060a3
+
+    results = Middleware(ProducerConsumer(Queues.RESULTS))
 
     stats = {
         "processed": 0,
@@ -25,10 +23,8 @@ def main():
     }
 
     def consume(msg: bytes, delivery_tag: int):
-        filter_name = "filter_by_stops"
-
         if msg is None:
-            print(f"{filter_name} | no-message")
+            print(f"{WORKER_TYPE} | no-message")
             upstream.send_nack(delivery_tag)
             return
 
@@ -37,37 +33,60 @@ def main():
 
         if header == "EOF":
             stop_consuming(
-                filter_name,
+                WORKER_TYPE,
                 data,
                 header,
                 upstream,
-                downstream,
+                results,
                 result="query1",
             )
+
+            stopped = int(data[0][0]) + 1
+            print(f"{WORKER_TYPE} | {header} | {stopped}/{REPLICAS}", flush=True)
+            if stopped < REPLICAS:
+                print(f"{WORKER_TYPE} | sending | EOF", flush=True)
+                downstream.send_message(
+                    Protocol.serialize_msg(header, [["0"], [REPLICAS]])
+                )
+
             return
 
+        # [ legId,
+        #   startingAirport,
+        #   destinationAirport,
+        #   travelDuration,
+        #   totalFare,
+        #   totalTravelDistance,
+        #   segmentsArrivalAirportCode
+        # ]
         stats["processed"] += len(data)
-        final = []
+        filtered = []
         while data:
             row = data.pop()
             stops_count = row[6].count("-") + 1
             if not row[6] or stops_count < MIN_STOPS_COUNT:
                 continue
-            final.append(
-                [row[0], row[1], row[2], f"{row[4][:-2]}.{row[4][-2:]}"]
-            )
-        stats["passed"] += len(final)
+            filtered.append(row)
+        stats["passed"] += len(filtered)
 
-        if not final:
+        if not filtered:
             return
-<<<<<<< HEAD
-        # results.send_message(Protocol.serialize_msg(header, rows_with_stops))
-        downstream.send_message(Protocol.serialize_msg(header, rows_with_stops))
-=======
-        downstream.send_message(Protocol.serialize_msg("query1", final))
->>>>>>> 709b70c15c8c8e98153cb26c4865df4a072060a3
 
+        filtered_q3 = [
+            [row[0], row[1], row[2], row[6], int(row[3])]
+            for row in filtered
+        ]
+
+        filtered_q1 = [
+            [row[0], row[1], row[2], f"{row[4][:-2]}.{row[4][-2:]}"]
+            for row in filtered
+        ]
+
+        downstream.send_message(Protocol.serialize_msg(header, filtered_q3))
+        results.send_message(Protocol.serialize_msg("query1", filtered_q1))
+
+    print(f"{WORKER_TYPE} | READY", flush=True)
     upstream.get_message(consume)
 
     for stat, value in stats.items():
-        print(f"filter_by_stops | {stat}", value, flush=True)
+        print(f"{WORKER_TYPE} | {stat}", value, flush=True)

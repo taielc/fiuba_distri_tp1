@@ -1,11 +1,10 @@
-from utils import distance
-from middleware import Middleware, PublisherConsumer, PublisherSuscriber
-from config import Queues, Subs
-from protocol import Protocol
 from collections import defaultdict
 
+from middleware import Middleware, ProducerConsumer, ProducerSubscriber
+from config import Queues, Subs
+from protocol import Protocol
+
 from ._config import REPLICAS
-from ._utils import stop_consuming
 
 
 def parse_coordinates(lat: str, lon: str):
@@ -20,8 +19,10 @@ WORKER_NAME = "filter_by_price"
 
 def main():
     flights = Middleware(
-        PublisherSuscriber(Queues.FILTER_BY_PRICE, Subs.FLIGHTS)
+        ProducerSubscriber(Subs.FLIGHTS, Queues.FILTER_BY_PRICE)
     )
+    avg_price = Middleware(ProducerSubscriber(Subs.AVG_PRICE, exclusive=True))
+    downstream = Middleware(ProducerConsumer(Queues.RESULTS))
 
     stats = {
         "processed": 0,
@@ -48,16 +49,11 @@ def main():
         for row in data:
             if row[4] == "":
                 continue
-            routes_prices[(row[0], row[1])].append(int(row[4]))
+            routes_prices[(row[1], row[2])].append(int(row[4]))
 
+    print(f"{WORKER_NAME} | READY", flush=True)
     flights.get_message(consume)
     print(f"{WORKER_NAME} | processed |", stats["processed"], flush=True)
-
-    avg_price = Middleware(
-        # TODO: exclusive queue
-        PublisherSuscriber(Queues.FILTER_BY_PRICE, Subs.AVG_PRICE)
-    )
-    downstream = Middleware(PublisherConsumer(Queues.RESULTS))
 
     def consume_avg_price(msg: bytes, delivery_tag: int):
         if msg is None:
@@ -101,5 +97,9 @@ def main():
             ]
         )
 
+    print(f"{WORKER_NAME} | sending | EOF", flush=True)
     downstream.send_message(Protocol.serialize_msg("query4", final))
-    downstream.send_message(Protocol.serialize_msg("EOF", [["query4"]]))
+    downstream.send_message(
+        Protocol.serialize_msg("EOF", [["query4"], [REPLICAS]])
+    )
+    downstream.close_connection()

@@ -1,3 +1,4 @@
 from .middleware import Middleware
-from .publisher_consumer import PublisherConsumer
-from .publisher_suscriber import PublisherSuscriber
+from .producer_consumer import ProducerConsumer
+from .producer_suscriber import ProducerSubscriber
+from .publisher import Publisher

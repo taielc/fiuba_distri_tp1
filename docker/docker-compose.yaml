@@ -81,6 +81,38 @@ x-dist_calculator: &dist_calculator
   environment:
     - REPLICAS=1
 
+x-partial_route_agg: &partial_route_agg
+  image: tp1-worker
+  command: partial_route_agg
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=1
+
+x-top_2_fastest_by_route: &top_2_fastest_by_route
+  image: tp1-worker
+  command: top_2_fastest_by_route
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=1
+
 
 services:
   middleware:
@@ -102,57 +134,40 @@ services:
       args:
         - package=server
         - include=middleware
+    ports:
+      - "9000:9000"
     volumes:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/middleware/src:/tp1/middleware/src
       - ../tp1/server/src:/tp1/server/src
     depends_on:
       - middleware
-  
-  client:
-    container_name: client
-    image: tp1-client
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        - package=client
-        - include=lib
-    depends_on:
-      - server
-    volumes:
-      - ../.data:/.data
-      - ../tp1/lib/src:/tp1/lib/src
-      - ../tp1/client/src:/tp1/client/src
 
-  
   
   base_filter-1:
     <<: *base_filter
     container_name: "base_filter-1"
   
-  
-  
   general_avg_price-1:
     <<: *general_avg_price
     container_name: "general_avg_price-1"
-  
-  
   
   filter_by_price-1:
     <<: *filter_by_price
     container_name: "filter_by_price-1"
   
-  
-  
   filter_by_stops-1:
     <<: *filter_by_stops
     container_name: "filter_by_stops-1"
   
-  
-  
   dist_calculator-1:
     <<: *dist_calculator
     container_name: "dist_calculator-1"
-  
-  
+
+  partial_route_agg-1:
+    <<: *partial_route_agg
+    container_name: "partial_route_agg-1"
+
+  top_2_fastest_by_route-1:
+    <<: *top_2_fastest_by_route
+    container_name: "top_2_fastest_by_route-1"

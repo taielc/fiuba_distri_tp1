@@ -73,6 +73,6 @@ class Client:
 
         for query, result in results.items():
             print(f"client | {query} | {len(result)}")
-            with open(ROOT_DIR / f".data/{query}.csv", "wt") as f:
+            with open(ROOT_DIR / f".data/results/{query}.csv", "wt") as f:
                 for row in result:
                     f.write(";".join(row) + "\n")

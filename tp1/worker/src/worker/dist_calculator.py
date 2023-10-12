@@ -1,5 +1,5 @@
 from utils import distance
-from middleware import Middleware, PublisherConsumer, PublisherSuscriber
+from middleware import Middleware, ProducerConsumer, ProducerSubscriber
 from config import DISTANCE_MULTIPLIER, Queues, Subs
 from protocol import Protocol
 
@@ -18,16 +18,11 @@ WORKER_NAME = "dist_calculator"
 
 
 def main():
-    airports = Middleware(
-        # TODO: make exclusive queue
-        PublisherSuscriber("dist-calc-airports", Subs.AIRPORTS)
-    )
+    airports = Middleware(ProducerSubscriber(Subs.AIRPORTS, exclusive=True))
     flights = Middleware(
-        # TODO: when using as upstream, should send _only_ to this queue
-        # (not the exchange)
-        PublisherSuscriber(Queues.DIST_CALCULATION, Subs.FLIGHTS)
+        ProducerSubscriber(Subs.FLIGHTS, Queues.DIST_CALCULATION)
     )
-    downstream = Middleware(PublisherConsumer(Queues.RESULTS))
+    downstream = Middleware(ProducerConsumer(Queues.RESULTS))
 
     distances = {}
     airports_coordinates = {}
@@ -55,6 +50,7 @@ def main():
                 continue
             airports_coordinates[row[0]] = parse_coordinates(row[5], row[6])
 
+    print(f"{WORKER_NAME} | READY", flush=True)
     airports.get_message(consume_airports)
     print(f"{WORKER_NAME} | airports | invalid |", invalids, flush=True)
 
