@@ -5,7 +5,8 @@ from middleware.producer_consumer import ProducerConsumer
 
 from ._utils import stop_consuming, top_2_fastest_by_route
 
-WORKER_TYPE = "top_2_fastest_flights_by_route"
+
+WORKER_TYPE = "aggregate_by_route"
 
 
 def main():
@@ -15,7 +16,6 @@ def main():
     top_2_fastest = {}
 
     def consume(msg: bytes, delivery_tag: int):
-
         if msg is None:
             print(f"{WORKER_TYPE} | no-message")
             upstream.send_nack(delivery_tag)

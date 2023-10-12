@@ -25,7 +25,7 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stop_consuming(WORKER_TYPE, data, header, upstream, results)
+            stop_consuming(WORKER_TYPE, data, header, upstream, results, "query3")
             acc_results = [flight for flights in top_2_fastest.values() for flight in flights]
             results.send_message(Protocol.serialize_msg(header, acc_results))
             return

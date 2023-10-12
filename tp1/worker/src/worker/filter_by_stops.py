@@ -44,7 +44,7 @@ def main():
             print(
                 f"{WORKER_TYPE} | {header} | {stopped}/{REPLICAS}", flush=True
             )
-            if stopped < REPLICAS:
+            if stopped == REPLICAS:
                 print(f"{WORKER_TYPE} | sending | EOF", flush=True)
                 downstream.send_message(
                     Protocol.serialize_msg(header, [["0"], [REPLICAS]])
