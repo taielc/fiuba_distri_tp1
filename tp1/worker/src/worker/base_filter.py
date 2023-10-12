@@ -1,7 +1,7 @@
 from protocol import Protocol
 from config import Queues, Subs
 import re
-from middleware import Middleware, PublisherConsumer, PublisherSubscriber
+from middleware import Middleware, PublisherConsumer, PublisherSuscriber
 
 
 from ._config import REPLICAS
@@ -49,7 +49,7 @@ def filter_itinerary(data):
 def main():
     upstream = Middleware(PublisherConsumer(Queues.FLIGHTS_RAW))
     downstream = Middleware(
-        PublisherSubscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS)
+        PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS)
     )
 
     def consume(msg: bytes):

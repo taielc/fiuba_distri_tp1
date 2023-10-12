@@ -2,7 +2,7 @@ from config import Queues, Subs
 from protocol import Protocol
 from middleware import Middleware
 from middleware.publisher_consumer import PublisherConsumer
-from middleware.publisher_suscriber import PublisherSubscriber
+from middleware.publisher_suscriber import PublisherSuscriber
 
 from ._config import REPLICAS
 
@@ -13,7 +13,7 @@ def main():
     downstream = Queues.RESULTS
 
 
-    upstream = Middleware(PublisherSubscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS))
+    upstream = Middleware(PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS))
     downstream = Middleware(PublisherConsumer(Queues.RESULTS))
 
     def consume(msg: bytes):
