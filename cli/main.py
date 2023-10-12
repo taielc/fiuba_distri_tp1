@@ -224,9 +224,9 @@ QUERY_DEFAULTS = [
 ]
 FILTER_DEFAULTS = {
     # 0
-    "base_filter": 2,
+    "base_filter": 1,
     # 1
-    "filter_by_stops": 2,  # & 3
+    "filter_by_stops": 1,  # & 3
     # 2
     "dist_calculator": 1,
     # 3
