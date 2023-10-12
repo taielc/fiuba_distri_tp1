@@ -5,12 +5,12 @@ from middleware.producer_consumer import ProducerConsumer
 
 from ._utils import stop_consuming, top_2_fastest_by_route
 
-WORKER_TYPE = "top_2_fastest_flights_by_route"
+WORKER_TYPE = "top_2_fastest_flights_by_route_acc"
 
 
 def main():
-    upstream = Middleware(ProducerConsumer(Queues.PARTIAL_ROUTE_AGG))
-    downstream = Middleware(ProducerConsumer(Queues.TOP_2_FASTESTS_BY_ROUTE))
+    upstream = Middleware(ProducerConsumer(Queues.TOP_2_FASTESTS_BY_ROUTE))
+    results = Middleware(ProducerConsumer(Queues.RESULTS))
 
     top_2_fastest = {}
 
@@ -25,9 +25,9 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stop_consuming(WORKER_TYPE, data, header, upstream, downstream)
-            results = [flight for flights in top_2_fastest.values() for flight in flights]
-            downstream.send_message(Protocol.serialize_msg(header, results))
+            stop_consuming(WORKER_TYPE, data, header, upstream, results)
+            acc_results = [flight for flights in top_2_fastest.values() for flight in flights]
+            results.send_message(Protocol.serialize_msg(header, acc_results))
             return
 
         while data:
