@@ -54,7 +54,7 @@ def main():
 
         if not final:
             return
-        downstream.send_message(Protocol.serialize_msg(header, final))
+        downstream.send_message(Protocol.serialize_msg("query1", final))
 
     upstream.get_message(consume)
 

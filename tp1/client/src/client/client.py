@@ -3,6 +3,7 @@ from pathlib import Path
 from tcp import Socket
 from protocol import Protocol
 from config import SERVER_HOST, SERVER_PORT, BATCH_SIZE
+from paths import ROOT_DIR
 
 from ._config import AIRPORTS_FILE, ITINERARIES_FILE
 from .reader import Reader
@@ -52,6 +53,12 @@ class Client:
 
     def recv_results(self, sock: Socket):
         print("client | receiving results", flush=True)
+        results = {
+            "query1": [],
+            "query2": [],
+            "query3": [],
+            "query4": [],
+        }
         while True:
             try:
                 data = Protocol.receive_batch(sock)
@@ -61,5 +68,12 @@ class Client:
             if data is None:
                 break
             for result in data:
-                print(result, flush=True)
+                row = result.split(";")
+                results[row[0]].append(row[1:])
         sock.send(Protocol.ACK_MESSAGE)
+
+        for query, result in results.items():
+            print(f"client | {query} | {len(result)}")
+            with open(ROOT_DIR / f".data/{query}.csv", "wt") as f:
+                for row in result:
+                    f.write(";".join(row) + "\n")

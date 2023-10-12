@@ -79,13 +79,10 @@ class Server:
         sink: Middleware,
     ):
         print("server | results", flush=True)
-        sock.send(
-            Protocol.serialize_batch(
-                [["example", "result1"], ["example", "result2"]]
-            )
-        )
 
-        queries_results = [False, False]
+        queries_results = [False, False, True, False]
+
+        stats = {"query1": 0, "query2": 0, "query3": 0, "query4": 0}
 
         def handle_message(message: bytes, delivery_tag: int):
             if message is None:
@@ -94,7 +91,6 @@ class Server:
 
             sink.send_ack(delivery_tag)
             header, results = Protocol.deserialize_msg(message)
-            print(f"server | msg | {header} | {len(results)}", flush=True)
             if header == "EOF":
                 query = results[0][0]
                 queries_results[int(query.lstrip("query")) - 1] = True
@@ -103,6 +99,12 @@ class Server:
                     sock.send(Protocol.EOF_MESSAGE)
                     sink.close_connection()
                 return
-            sock.send(Protocol.serialize_batch(results))
+
+            stats[header] += len(results)
+            final = [";".join([header, *result]) for result in results]
+            sock.send(Protocol.serialize_batch(final))
 
         sink.get_message(handle_message)
+
+        for query, count in stats.items():
+            print(f"server | {query} | {count}", flush=True)

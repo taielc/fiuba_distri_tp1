@@ -12,18 +12,23 @@ DEFAULT_INT_SIZE = 4
 DEFAULT_ENCODING = "utf-8"
 
 MIN_STOPS_COUNT = 3
+DISTANCE_MULTIPLIER = 4
 
 class Queues:
     RESULTS = "results"
     RAW_FLIGHTS = "raw-flights"
+
     FILTER_BY_STOPS = "filter-by-stops"
     DIST_CALCULATION = "distance-calculation"
 
-    EXCLUSIVE = ""
+    GENERAL_AVG_PRICE = "general-avg-price"
+    PARTIAL_ROUTE_AGG = "partial-route-agg"
+    FILTER_BY_PRICE = "filter-by-price"
 
+    EXCLUSIVE = ""
 
 
 class Subs:
     AIRPORTS = "airports"
     FLIGHTS = "flights"
-
+    AVG_PRICE = "avg-price"
