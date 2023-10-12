@@ -17,6 +17,7 @@ class Server:
 
     def run(self):
         sink = Middleware(ProducerConsumer(Queues.RESULTS))
+        print("READY", flush=True)
         with self.socket.accept() as client_sock:
             print("server | connected", flush=True)
             self.client_sock = client_sock
@@ -82,9 +83,6 @@ class Server:
 
         queries = ["query1", "query2", "query3", "query4"]
         finished = {query: False for query in queries}
-        # TEMP
-        finished["query3"] = True
-        replicas_countdown = {query: None for query in queries}
 
         stats = {"query1": 0, "query2": 0, "query3": 0, "query4": 0}
 
@@ -96,14 +94,11 @@ class Server:
             sink.send_ack(delivery_tag)
             header, results = Protocol.deserialize_msg(message)
             if header == "EOF":
-                # EOF | [["query"], ["replicas"]]
+                # EOF | [["queryX"]]
                 query = results[0][0]
-                if replicas_countdown[query] is None:
-                    replicas_countdown[query] = int(results[1][0])
-                replicas_countdown[query] -= 1
-                finished[query] = replicas_countdown[query] == 0
+                finished[query] = True
                 print(
-                    f"server | EOF | {query} | {finished} | {replicas_countdown[query]}",
+                    f"server | EOF | {query} | {finished} | {stats[query]}",
                     flush=True,
                 )
                 if all(finished.values()):

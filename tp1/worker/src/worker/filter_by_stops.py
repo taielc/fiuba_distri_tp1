@@ -3,13 +3,12 @@ from protocol import Protocol
 from middleware import Middleware, ProducerConsumer, ProducerSubscriber
 
 from ._utils import stop_consuming
+from ._config import REPLICAS
 
 WORKER_TYPE = "filter_by_stops"
-from ._config import REPLICAS
 
 
 def main():
-
     downstream = Middleware(ProducerConsumer(Queues.PARTIAL_ROUTE_AGG))
     upstream = Middleware(
         ProducerSubscriber(Subs.FLIGHTS, Queues.FILTER_BY_STOPS)
@@ -24,7 +23,7 @@ def main():
 
     def consume(msg: bytes, delivery_tag: int):
         if msg is None:
-            print(f"{WORKER_TYPE} | no-message")
+            print("no-message")
             upstream.send_nack(delivery_tag)
             return
 
@@ -42,7 +41,9 @@ def main():
             )
 
             stopped = int(data[0][0]) + 1
-            print(f"{WORKER_TYPE} | {header} | {stopped}/{REPLICAS}", flush=True)
+            print(
+                f"{WORKER_TYPE} | {header} | {stopped}/{REPLICAS}", flush=True
+            )
             if stopped < REPLICAS:
                 print(f"{WORKER_TYPE} | sending | EOF", flush=True)
                 downstream.send_message(
@@ -73,8 +74,7 @@ def main():
             return
 
         filtered_q3 = [
-            [row[0], row[1], row[2], row[6], int(row[3])]
-            for row in filtered
+            [row[0], row[1], row[2], row[6], int(row[3])] for row in filtered
         ]
 
         filtered_q1 = [
@@ -85,8 +85,8 @@ def main():
         downstream.send_message(Protocol.serialize_msg(header, filtered_q3))
         results.send_message(Protocol.serialize_msg("query1", filtered_q1))
 
-    print(f"{WORKER_TYPE} | READY", flush=True)
+    print("READY", flush=True)
     upstream.get_message(consume)
 
     for stat, value in stats.items():
-        print(f"{WORKER_TYPE} | {stat}", value, flush=True)
+        print(f"{stat} | {value}", flush=True)

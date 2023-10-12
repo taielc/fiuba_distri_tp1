@@ -3,7 +3,6 @@ from middleware import Middleware, ProducerConsumer, ProducerSubscriber
 from config import DISTANCE_MULTIPLIER, Queues, Subs
 from protocol import Protocol
 
-from ._config import REPLICAS
 from ._utils import stop_consuming
 
 
@@ -40,7 +39,7 @@ def main():
         # [6] Longitude;
 
         if header == "EOF":
-            print(f"{WORKER_NAME} | airports | EOF", flush=True)
+            print("airports | EOF", flush=True)
             airports.close_connection()
             return
 
@@ -50,9 +49,9 @@ def main():
                 continue
             airports_coordinates[row[0]] = parse_coordinates(row[5], row[6])
 
-    print(f"{WORKER_NAME} | READY", flush=True)
+    print("READY", flush=True)
     airports.get_message(consume_airports)
-    print(f"{WORKER_NAME} | airports | invalid |", invalids, flush=True)
+    print("airports | invalid |", invalids, flush=True)
 
     stats = {
         "processed": 0,
@@ -75,7 +74,7 @@ def main():
                 header,
                 flights,
                 downstream,
-                result="query2",
+                "query2",
             )
             return
 
@@ -109,4 +108,4 @@ def main():
     flights.get_message(consume_flights)
 
     for stat, value in stats.items():
-        print(f"{WORKER_NAME} | {stat} |", value, flush=True)
+        print(f"{stat} |", value, flush=True)
