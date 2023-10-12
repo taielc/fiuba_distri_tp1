@@ -2,37 +2,21 @@ from config import Queues, Subs
 from protocol import Protocol
 from middleware import Middleware
 from middleware.publisher_consumer import PublisherConsumer
-from middleware.publisher_suscriber import PublisherSubscriber
+from middleware.publisher_suscriber import PublisherSuscriber
 
 from ._config import REPLICAS
+from ._utils import stop_consuming
 
 
 def main():
-    subscription = Subs.FLIGHTS
-    upstream = Queues.FILTER_BY_STOPS
-    downstream = Queues.RESULTS
-
-
-    upstream = Middleware(PublisherSubscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS))
+    upstream = Middleware(PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS))
     downstream = Middleware(PublisherConsumer(Queues.RESULTS))
 
     def consume(msg: bytes):
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stopped = int(data[0][0]) + 1
-            print(
-                f"filter_by_stops | {header} | {stopped}/{REPLICAS}", flush=True
-            )
-            if stopped < REPLICAS:
-                upstream.send_message(
-                    Protocol.serialize_msg(header, [[stopped]]),
-                )
-            else:
-                print("filter_by_stops | sending | EOF", flush=True)
-                downstream.send_message(Protocol.serialize_msg(header, [[0]]))
-            upstream.close_connection()
-            return
+            stop_consuming("filter_by_stops", REPLICAS, data, header, upstream, downstream)
 
         if header == "airports":
             print(
@@ -57,6 +41,6 @@ def main():
             return
         downstream.send_message(Protocol.serialize_msg(header, rows_with_stops))
 
-    upstream.get_message(consume)
+    upstream.start_consuming(consume)
 
     print("filter_by_stops | running")
