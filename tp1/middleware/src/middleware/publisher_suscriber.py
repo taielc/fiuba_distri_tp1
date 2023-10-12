@@ -1,5 +1,4 @@
 import pika
-from time import sleep
 
 from .middleware_type import MiddlewareType
 from .constants import RABBITMQ_HOST
@@ -19,17 +18,21 @@ class PublisherSuscriber(MiddlewareType):
         self._queue_name = queue_name
         self.handle_message = None
 
-        self.channel.exchange_declare(exchange=self._exchange_name, exchange_type='fanout')
+        self.channel.exchange_declare(
+            exchange=self._exchange_name, exchange_type="fanout"
+        )
 
         self.channel.basic_qos(prefetch_count=1)
 
         self.channel.queue_declare(queue=self._queue_name, auto_delete=True)
 
-        self.channel.queue_bind(exchange=self._exchange_name, queue=self._queue_name)
+        self.channel.queue_bind(
+            exchange=self._exchange_name, queue=self._queue_name
+        )
 
     def send_message(self, message: str):
         self.channel.basic_publish(
-            exchange=self._exchange_name, routing_key='', body=message
+            exchange=self._exchange_name, routing_key="", body=message
         )
 
     def get_message(self, handle_message):
@@ -37,10 +40,10 @@ class PublisherSuscriber(MiddlewareType):
 
         def callback(channel, method, properties, body):
             self.handle_message(body, method.delivery_tag)
-            print(body)
-            print()
 
-        self.channel.basic_consume(queue=self._queue_name, on_message_callback=callback)
+        self.channel.basic_consume(
+            queue=self._queue_name, on_message_callback=callback
+        )
 
         self.channel.start_consuming()
 
@@ -54,4 +57,3 @@ class PublisherSuscriber(MiddlewareType):
         self.channel.stop_consuming()
         self.channel.exchange_delete(self._exchange_name)
         self.connection.close()
-
