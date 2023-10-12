@@ -12,11 +12,19 @@ def main():
     upstream = Middleware(PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS))
     downstream = Middleware(PublisherConsumer(Queues.RESULTS))
 
-    def consume(msg: bytes):
+    def consume(msg: bytes, delivery_tag: int):
+        filter_name = "filter_by_stops"
+
+        if msg is None:
+            print(f"{filter_name} | no-message")
+            upstream.send_nack(delivery_tag)
+            return
+
+        upstream.send_ack(delivery_tag)
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stop_consuming("filter_by_stops", REPLICAS, data, header, upstream, downstream)
+            stop_consuming(filter_name, REPLICAS, data, header, upstream, downstream)
 
         if header == "airports":
             print(
@@ -41,6 +49,6 @@ def main():
             return
         downstream.send_message(Protocol.serialize_msg(header, rows_with_stops))
 
-    upstream.start_consuming(consume)
+    upstream.get_message(consume)
 
     print("filter_by_stops | running")

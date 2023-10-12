@@ -55,13 +55,21 @@ def main():
         PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS)
     )
 
-    def consume(msg: bytes):
+    def consume(msg: bytes, delivery_tag: int):
+        filter_name = "base_filter"
+
+        if msg is None:
+            print(f"{filter_name} | no-message")
+            upstream.send_nack(delivery_tag)
+            return
+
+        upstream.send_ack(delivery_tag)
         header, data = Protocol.deserialize_msg(msg)
 
         shape = (len(data), len(data[0]))
-        print(f"base_filter | received | {header} | {shape}")
+        print(f"{filter_name} | received | {header} | {shape}")
         if header == "EOF":
-            stop_consuming("base_filter", REPLICAS, data, header, upstream, downstream)
+            stop_consuming(filter_name, REPLICAS, data, header, upstream, downstream)
 
         if header == "airports":
             data = filter_airport(data)
@@ -70,4 +78,4 @@ def main():
 
         downstream.send_message(Protocol.serialize_msg(header, data))
 
-    upstream.start_consuming(consume)
+    upstream.get_message(consume)
