@@ -213,7 +213,7 @@ def run_tp1(build: bool, args: tuple[str]):
         f"{worker}-{i}"
         for worker, count in worker_counts
         for i in range(1, count + 1)
-    ) + ("client", "server")
+    ) + ("server", )
     _docker_compose(("up", "-d", "--build" if build else "") + services)
     print("Check logs with:")
     print(
