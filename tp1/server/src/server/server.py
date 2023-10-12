@@ -1,7 +1,7 @@
 from logging import getLogger
 
 from config import SERVER_PORT, Queues, Subs
-from middleware import Middleware, PublisherConsumer, PublisherSuscriber
+from middleware import Middleware, ProducerConsumer, Publisher
 from protocol import Protocol
 from tcp import ServerSocket, Socket
 
@@ -16,7 +16,7 @@ class Server:
         self.sink = None
 
     def run(self):
-        sink = Middleware(PublisherConsumer(Queues.RESULTS))
+        sink = Middleware(ProducerConsumer(Queues.RESULTS))
         with self.socket.accept() as client_sock:
             print("server | connected", flush=True)
             self.client_sock = client_sock
@@ -61,7 +61,7 @@ class Server:
         self,
         sock: Socket,
     ):
-        airports = Middleware(PublisherSuscriber("", Subs.AIRPORTS))
+        airports = Middleware(Publisher(Subs.AIRPORTS))
         self._recv_file("airports", sock, airports)
         airports.close_connection()
 
@@ -69,7 +69,7 @@ class Server:
         self,
         sock: Socket,
     ):
-        raw_flights = Middleware(PublisherConsumer(Queues.RAW_FLIGHTS))
+        raw_flights = Middleware(ProducerConsumer(Queues.RAW_FLIGHTS))
         self._recv_file("itineraries", sock, raw_flights)
         raw_flights.close_connection()
 
@@ -80,7 +80,11 @@ class Server:
     ):
         print("server | results", flush=True)
 
-        queries_results = [False, False, True, False]
+        queries = ["query1", "query2", "query3", "query4"]
+        finished = {query: False for query in queries}
+        # TEMP
+        finished["query3"] = True
+        replicas_countdown = {query: None for query in queries}
 
         stats = {"query1": 0, "query2": 0, "query3": 0, "query4": 0}
 
@@ -92,10 +96,17 @@ class Server:
             sink.send_ack(delivery_tag)
             header, results = Protocol.deserialize_msg(message)
             if header == "EOF":
+                # EOF | [["query"], ["replicas"]]
                 query = results[0][0]
-                queries_results[int(query.lstrip("query")) - 1] = True
-                print(f"server | EOF | {query} | {queries_results}", flush=True)
-                if all(queries_results):
+                if replicas_countdown[query] is None:
+                    replicas_countdown[query] = int(results[1][0])
+                replicas_countdown[query] -= 1
+                finished[query] = replicas_countdown[query] == 0
+                print(
+                    f"server | EOF | {query} | {finished} | {replicas_countdown[query]}",
+                    flush=True,
+                )
+                if all(finished.values()):
                     sock.send(Protocol.EOF_MESSAGE)
                     sink.close_connection()
                 return

@@ -1,5 +1,5 @@
 import re
-from middleware import Middleware, PublisherConsumer, PublisherSuscriber
+from middleware import Middleware, Publisher, ProducerConsumer
 from protocol import Protocol
 from config import Queues, Subs
 
@@ -7,6 +7,7 @@ from ._utils import stop_consuming
 
 
 FLIGHT_ROW_SIZE = 27
+WORKER_NAME = "base_filter"
 
 
 def filter_itinerary(data):
@@ -52,10 +53,8 @@ def filter_itinerary(data):
 
 
 def main():
-    upstream = Middleware(PublisherConsumer(Queues.RAW_FLIGHTS))
-    downstream = Middleware(
-        PublisherSuscriber(Queues.DIST_CALCULATION, Subs.FLIGHTS)
-    )
+    upstream = Middleware(ProducerConsumer(Queues.RAW_FLIGHTS))
+    downstream = Middleware(Publisher(Subs.FLIGHTS))
 
     stats = {
         "invalids": [],
@@ -63,10 +62,8 @@ def main():
     }
 
     def consume(msg: bytes, delivery_tag: int):
-        filter_name = "base_filter"
-
         if msg is None:
-            print(f"{filter_name} | no-message")
+            print(f"{WORKER_NAME} | no-message")
             upstream.send_nack(delivery_tag)
             return
 
@@ -74,7 +71,7 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stop_consuming(filter_name, data, header, upstream, downstream)
+            stop_consuming(WORKER_NAME, data, header, upstream, downstream)
             return
 
         stats["processed"] += len(data)
@@ -85,7 +82,8 @@ def main():
 
         downstream.send_message(Protocol.serialize_msg(header, data))
 
+    print(f"{WORKER_NAME} | READY", flush=True)
     upstream.get_message(consume)
 
     for stat, value in stats.items():
-        print(f"base_filter | {stat}", value, flush=True)
+        print(f"{stat}", value, flush=True)

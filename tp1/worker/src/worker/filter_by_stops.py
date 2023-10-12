@@ -1,17 +1,16 @@
 from config import Queues, Subs, MIN_STOPS_COUNT
 from protocol import Protocol
-from middleware import Middleware
-from middleware.publisher_consumer import PublisherConsumer
-from middleware.publisher_suscriber import PublisherSuscriber
+from middleware import Middleware, ProducerConsumer, ProducerSubscriber
 
 from ._utils import stop_consuming
 
+WORKER_TYPE = "filter_by_stops"
 
 def main():
     upstream = Middleware(
-        PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS)
+        ProducerSubscriber(Subs.FLIGHTS, Queues.FILTER_BY_STOPS)
     )
-    downstream = Middleware(PublisherConsumer(Queues.RESULTS))
+    downstream = Middleware(ProducerConsumer(Queues.RESULTS))
 
     stats = {
         "processed": 0,
@@ -19,10 +18,8 @@ def main():
     }
 
     def consume(msg: bytes, delivery_tag: int):
-        filter_name = "filter_by_stops"
-
         if msg is None:
-            print(f"{filter_name} | no-message")
+            print(f"{WORKER_TYPE} | no-message")
             upstream.send_nack(delivery_tag)
             return
 
@@ -31,7 +28,7 @@ def main():
 
         if header == "EOF":
             stop_consuming(
-                filter_name,
+                WORKER_TYPE,
                 data,
                 header,
                 upstream,
@@ -56,7 +53,8 @@ def main():
             return
         downstream.send_message(Protocol.serialize_msg("query1", final))
 
+    print(f"{WORKER_TYPE} | READY", flush=True)
     upstream.get_message(consume)
 
     for stat, value in stats.items():
-        print(f"filter_by_stops | {stat}", value, flush=True)
+        print(f"{WORKER_TYPE} | {stat}", value, flush=True)

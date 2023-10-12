@@ -1,10 +1,8 @@
-from utils import distance
-from middleware import Middleware, PublisherConsumer, PublisherSuscriber
+from middleware import Middleware, ProducerSubscriber, Publisher
 from config import Queues, Subs
 from protocol import Protocol
 
 from ._config import REPLICAS
-from ._utils import stop_consuming
 
 
 def parse_coordinates(lat: str, lon: str):
@@ -19,7 +17,7 @@ WORKER_NAME = "general_avg_price"
 
 def main():
     upstream = Middleware(
-        PublisherSuscriber(Queues.GENERAL_AVG_PRICE, Subs.FLIGHTS)
+        ProducerSubscriber(Subs.FLIGHTS, Queues.GENERAL_AVG_PRICE)
     )
 
     stats = {
@@ -44,12 +42,10 @@ def main():
         for row in data:
             stats["sum_price"] += int(row[4] or "0")
 
+    print(f"{WORKER_NAME} | READY", flush=True)
     upstream.get_message(consume)
 
-    downstream = Middleware(
-        # TODO: doesn't need to declare queue
-        PublisherSuscriber(Queues.FILTER_BY_PRICE, Subs.AVG_PRICE)
-    )
+    downstream = Middleware(Publisher(Subs.AVG_PRICE))
     downstream.send_message(
         Protocol.serialize_msg(
             "avg_price", [[REPLICAS, stats["sum_price"], stats["processed"]]]

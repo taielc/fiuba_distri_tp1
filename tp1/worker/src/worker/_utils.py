@@ -10,7 +10,7 @@ def stop_consuming(
     header: str,
     upstream: Middleware,
     downstream: Middleware,
-    result=0,
+    result: int | str = 0,
 ):
     stopped = int(data[0][0]) + 1
     print(f"{filter_name} | {header} | {stopped}/{REPLICAS}", flush=True)
@@ -20,5 +20,7 @@ def stop_consuming(
         )
     else:
         print(f"{filter_name} | sending | EOF", flush=True)
-        downstream.send_message(Protocol.serialize_msg(header, [[result]]))
+        downstream.send_message(
+            Protocol.serialize_msg(header, [[result], [REPLICAS]])
+        )
     upstream.close_connection()

@@ -1,7 +1,7 @@
 """Main scripts"""
 
 from os import environ
-from subprocess import run
+from subprocess import run, CalledProcessError
 from time import sleep
 import click
 
@@ -24,16 +24,17 @@ def _run_on_package(
     environ.update(envs)
     current_env = environ.copy()
     current_env.pop("VIRTUAL_ENV", None)
-    if chdir:
-        command = f"cd {wd} && {command}"
-    run(
-        command,
-        cwd=wd,
-        shell=True,
-        check=True,
-        start_new_session=True,
-        env=current_env,
-    )
+    try:
+        run(
+            command,
+            cwd=wd,
+            shell=True,
+            check=True,
+            env=current_env,
+        )
+    except CalledProcessError as e:
+        print(e)
+        exit(1)
 
 
 @click.group()
@@ -170,8 +171,7 @@ def build_(args: tuple[str]):
     _generate_docker_compose_dev(worker_counts)
 
 
-@tp1.command()
-def reset_middleware():
+def _reset_middleware():
     run(
         "docker exec -it middleware bash -c "
         "'rabbitmqctl stop_app; "
@@ -182,6 +182,11 @@ def reset_middleware():
         check=True,
         start_new_session=True,
     )
+
+
+@tp1.command("reset-middleware")
+def reset_middleware_():
+    _reset_middleware()
 
 
 def _save_workers(services: list[tuple[str, int]]):
@@ -285,8 +290,16 @@ def stop(rm: bool):
     is_flag=True,
     help="Rebuild docker compose",
 )
-def restart(rm: bool, no_rebuild: bool):
+@click.option(
+    "--reset-middleware",
+    "-r",
+    is_flag=True,
+    help="Reset middleware",
+)
+def restart(rm: bool, no_rebuild: bool, reset_middleware: bool):
     _stop(rm)
+    if reset_middleware:
+        _reset_middleware()
     if not no_rebuild:
         worker_counts = _get_worker_counts()
         _generate_docker_compose_dev(worker_counts)
@@ -330,9 +343,9 @@ def client(local: bool, build: bool):
         _run_on_package("client", docker.build_cmd("client"), chdir=False)
     cmd = [
         "docker run -it --rm --network=docker_default",
-        f"--volume {paths.ROOT}/.data:/.data",
-        f"--volume {paths.TP1}/lib/src/:/tp1/lib/src/",
-        f"--volume {paths.TP1}/client/src/:/tp1/client/src/",
+        f"--volume {paths.ROOT}/.data:/.data:rw",
+        f"--volume {paths.TP1}/lib/src/:/tp1/lib/src/:rw",
+        f"--volume {paths.TP1}/client/src/:/tp1/client/src/:rw",
         "tp1-client",
     ]
     run(

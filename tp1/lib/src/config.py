@@ -5,9 +5,10 @@ from os import getenv
 DATASET_SIZE = 100000
 
 SERVER_HOST = getenv("SERVER_HOST", "server")
-SERVER_PORT = int(getenv("SERVER_PORT", "9000"))
-BATCH_SIZE = 5
+SERVER_PORT = 9000
+MIDDLEWARE_HOST = "middleware"
 
+BATCH_SIZE = 5
 DEFAULT_INT_SIZE = 4
 DEFAULT_ENCODING = "utf-8"
 
@@ -24,8 +25,6 @@ class Queues:
     GENERAL_AVG_PRICE = "general-avg-price"
     PARTIAL_ROUTE_AGG = "partial-route-agg"
     FILTER_BY_PRICE = "filter-by-price"
-
-    EXCLUSIVE = ""
 
 
 class Subs:
