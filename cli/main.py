@@ -9,7 +9,6 @@ import click
 from .utils import (
     docker,
     BUILDABLE_PACKAGES,
-    RUNNABLE_PACKAGES,
     PACKAGES,
     paths,
     render_template,
@@ -254,7 +253,7 @@ def restart(rm: bool):
     _stop(rm)
     with open(paths.ROOT / "cli/tmp/running_services.txt") as f:
         services = f.read().splitlines()
-    _docker_compose(("up", "-d") + tuple(services))
+    _docker_compose(("up", "-d", "--remove-orphans") + tuple(services))
 
 
 @tp1.command()
