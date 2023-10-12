@@ -9,7 +9,8 @@ from ._utils import stop_consuming
 
 def main():
     upstream = Middleware(PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS))
-    downstream = Middleware(PublisherConsumer(Queues.RESULTS))
+    downstream = Middleware(PublisherConsumer(Queues.TOP_2_FASTEST))
+    # results = Middleware(PublisherConsumer(Queues.RESULTS))
 
     def consume(msg: bytes, delivery_tag: int):
         filter_name = "filter_by_stops"
@@ -23,8 +24,10 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
+            # stop_consuming(filter_name, data, header, upstream, results)
             stop_consuming(filter_name, data, header, upstream, downstream)
 
+        # ELIMINAR CUANDO AEROPUERTOS ESTE APARTE
         if header == "airports":
             print(
                 f"filter_by_stops | ignoring | {header} | {len(data)}",
@@ -46,6 +49,7 @@ def main():
         print(f"filter_by_stops | kept | {len(rows_with_stops)}", flush=True)
         if not rows_with_stops:
             return
+        # results.send_message(Protocol.serialize_msg(header, rows_with_stops))
         downstream.send_message(Protocol.serialize_msg(header, rows_with_stops))
 
     upstream.get_message(consume)

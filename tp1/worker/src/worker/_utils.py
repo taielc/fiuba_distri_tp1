@@ -1,4 +1,5 @@
 from protocol import Protocol
+import re
 
 from ._config import REPLICAS
 
