@@ -15,9 +15,9 @@ class Reader:
                 line_count += 1
                 if line_count == 1:
                     continue
-                buffer.append(line.strip().replace(",", ";"))
+                buffer.append(line.strip())
                 if len(buffer) == self.batch_size:
                     yield buffer
                     buffer = []
-            
+
         return _iter()

@@ -9,17 +9,19 @@ import click
 from .utils import (
     docker,
     BUILDABLE_PACKAGES,
-    RUNNABLE_PACKAGES,
     PACKAGES,
     paths,
     render_template,
 )
 
 
-def _run_on_package(package: str, command: str, chdir: bool = True):
+def _run_on_package(
+    package: str, command: str, chdir: bool = True, envs: dict = {}
+):
     wd = paths.TP1 / package
     print(f"{wd}$ {command}")
     environ["PACKAGE"] = package
+    environ.update(envs)
     current_env = environ.copy()
     current_env.pop("VIRTUAL_ENV", None)
     if chdir:
@@ -65,7 +67,7 @@ def docker_build(package: str):
 
 def _docker_compose(args: tuple[str]):
     command = " ".join(args)
-    compose_path = paths.DOCKER / f"docker-compose.yaml"
+    compose_path = paths.DOCKER / "docker-compose.yaml"
     full_command = f"docker-compose -f {compose_path} {command}"
     print(f"Running docker-compose:\n> {full_command}")
     run(
@@ -149,6 +151,7 @@ def _generate_docker_compose_dev(worker_counts: list[tuple[str, int]] = []):
 
 
 @tp1.command(
+    "build",
     context_settings=dict(
         allow_extra_args=True,
         ignore_unknown_options=True,
@@ -159,7 +162,7 @@ def _generate_docker_compose_dev(worker_counts: list[tuple[str, int]] = []):
     nargs=-1,
     type=click.UNPROCESSED,
 )
-def build(args: tuple[str]):
+def build_(args: tuple[str]):
     worker_counts = [
         (args[i].lstrip("--").replace("-", "_"), int(args[i + 1]))
         for i in range(0, len(args), 2)
@@ -179,6 +182,32 @@ def reset_middleware():
         check=True,
         start_new_session=True,
     )
+
+
+def _save_workers(services: list[tuple[str, int]]):
+    with open(paths.ROOT / "cli/tmp/running_services.csv", "w") as f:
+        f.write("\n".join(map(lambda s: f"{s[0]},{s[1]}", services)))
+
+
+def _get_running_workers() -> list[tuple[str, int]]:
+    with open(paths.ROOT / "cli/tmp/running_services.csv") as f:
+        return [
+            f"{service}-{i}"
+            for service, count in map(
+                lambda s: s.split(","), f.read().splitlines()
+            )
+            for i in range(1, int(count) + 1)
+        ]
+
+
+def _get_worker_counts() -> list[tuple[str, int]]:
+    with open(paths.ROOT / "cli/tmp/running_services.csv") as f:
+        return [
+            (service, int(count))
+            for service, count in map(
+                lambda s: s.split(","), f.read().splitlines()
+            )
+        ]
 
 
 @tp1.command(
@@ -210,29 +239,30 @@ def run_tp1(build: bool, args: tuple[str]):
     if not docker.is_running("middleware"):
         _docker_compose(("up", "-d", "middleware"))
         sleep(5)
-    services = tuple(
+    services = [
         f"{worker}-{i}"
         for worker, count in worker_counts
         for i in range(1, count + 1)
-    ) + ("client", "server")
-    _docker_compose(("up", "-d", "--build" if build else "") + services)
+    ] + ["server"]
+    _docker_compose(
+        ["up", "-d", "--remove-orphans", "--build" if build else ""] + services
+    )
     print("Check logs with:")
     print(
         "docker compose -f docker/docker-compose.yaml logs -f "
         + " ".join(services)
     )
-    with open(paths.ROOT / "cli/tmp/running_services.txt", "w") as f:
-        f.write("\n".join(services))
+    _save_workers(worker_counts)
 
 
 def _stop(rm: bool):
-    with open(paths.ROOT / "cli/tmp/running_services.txt") as f:
-        services = f.read().splitlines()
+    services = _get_running_workers() + ["server"]
     _docker_compose(("stop",) + tuple(services))
     print("Stopped services")
     if rm:
         _docker_compose(("rm", "-f") + tuple(services))
         print("Removed services")
+
 
 @tp1.command()
 @click.option(
@@ -250,23 +280,66 @@ def stop(rm: bool):
     is_flag=True,
     help="Remove containers after stopping",
 )
-def restart(rm: bool):
+@click.option(
+    "--no-rebuild",
+    is_flag=True,
+    help="Rebuild docker compose",
+)
+def restart(rm: bool, no_rebuild: bool):
     _stop(rm)
-    with open(paths.ROOT / "cli/tmp/running_services.txt") as f:
-        services = f.read().splitlines()
-    _docker_compose(("up", "-d") + tuple(services))
+    if not no_rebuild:
+        worker_counts = _get_worker_counts()
+        _generate_docker_compose_dev(worker_counts)
+    services = _get_running_workers() + ["server"]
+    _docker_compose(("up", "-d", "--remove-orphans") + tuple(services))
 
 
 @tp1.command()
 def down():
     run(
-        "docker exec -it middleware bash -c " "'rabbitmqctl stop_app'",
+        "docker exec -it middleware bash -c 'rabbitmqctl stop_app'",
         cwd=paths.ROOT,
         shell=True,
         check=True,
         start_new_session=True,
     )
     _docker_compose(("down", "-v", "--remove-orphans"))
+
+
+@tp1.command()
+@click.option(
+    "--build",
+    is_flag=True,
+    help="Build docker image",
+)
+@click.option(
+    "--local",
+    "-l",
+    is_flag=True,
+    help="Run locally instead of dockerized",
+)
+def client(local: bool, build: bool):
+    if local:
+        if build:
+            _run_on_package("client", "poetry install")
+        _run_on_package(
+            "client", "poetry run main", envs={"SERVER_HOST": "localhost"}
+        )
+        return
+    if build:
+        _run_on_package("client", docker.build_cmd("client"), chdir=False)
+    cmd = [
+        "docker run -it --rm --network=docker_default",
+        f"--volume {paths.ROOT}/.data:/.data",
+        f"--volume {paths.TP1}/lib/src/:/tp1/lib/src/",
+        f"--volume {paths.TP1}/client/src/:/tp1/client/src/",
+        "tp1-client",
+    ]
+    run(
+        " \\\n  ".join(cmd),
+        check=True,
+        shell=True,
+    )
 
 
 if __name__ == "__main__":

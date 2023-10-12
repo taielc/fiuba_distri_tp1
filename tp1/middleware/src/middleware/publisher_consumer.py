@@ -1,6 +1,5 @@
-import pika
 from typing import Callable
-from time import sleep  # TEMP
+import pika
 
 from .middleware_type import MiddlewareType
 from .constants import RABBITMQ_HOST
@@ -19,7 +18,7 @@ class PublisherConsumer(MiddlewareType):
         self._queue_name = queue_name
         self.handle_message = None
 
-        self.channel.queue_declare(queue=self._queue_name, auto_delete=True)
+        self.channel.queue_declare(queue=self._queue_name)
         self.channel.basic_qos(prefetch_count=1)
 
     def send_message(self, message: str):
@@ -27,15 +26,15 @@ class PublisherConsumer(MiddlewareType):
             exchange="", routing_key=self._queue_name, body=message
         )
 
-    def get_message(self, handle_message):
+    def get_message(self, handle_message: Callable[[bytes, int], None]):
         self.handle_message = handle_message
 
         def callback(channel, method, properties, body):
             self.handle_message(body, method.delivery_tag)
-            print(body)
-            print()
 
-        self.channel.basic_consume(queue=self._queue_name, on_message_callback=callback)
+        self.channel.basic_consume(
+            queue=self._queue_name, on_message_callback=callback
+        )
 
         self.channel.start_consuming()
 

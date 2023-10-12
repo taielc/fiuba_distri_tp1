@@ -1,21 +1,16 @@
+import re
+from middleware import Middleware, PublisherConsumer, PublisherSuscriber
 from protocol import Protocol
 from config import Queues, Subs
-import re
-from middleware import Middleware
-from middleware.publisher_consumer import PublisherConsumer
-from middleware.publisher_suscriber import PublisherSuscriber
 
 from ._utils import stop_consuming
 
 
-def filter_airport(data):
-    # [0] Airport Code;
-    # [5] Latitude;
-    # [6] Longitude;
-    return [[row[0], row[5], row[6]] for row in data]
+FLIGHT_ROW_SIZE = 27
 
 
 def filter_itinerary(data):
+    # [z] id (line number)
     # [0] legId
     # [3] startingAirport
     # [4] destinationAirport
@@ -24,14 +19,23 @@ def filter_itinerary(data):
     # [14] totalTravelDistance
     # [19] segmentsArrivalAirportCode: remove last (is startingAirport)
     def parse_duration(duration):
-        # PTxHyM -> x * 60 + y
-        match = re.match(r"PT(\d+)H(\d+)M", duration)
+        # PxDTyHzM -> x * 24 * 60 + y * 60 + z
+        # PTyHzM -> y * 60 + z
+        # PTzM -> z
+        # PxDT -> x * 24 * 60
+        # PTyH -> y * 60
+        match = re.match(
+            r"P((?P<days>\d+)DT)?((?P<hours>\d+)H)?((?P<minutes>\d+)M)?",
+            duration,
+        )
         if match is None:
             print("filter | parsing error | duration |", duration)
             return -1
-        hours = int(match.group(1))
-        minutes = int(match.group(2))
-        return hours * 60 + minutes
+        groups = match.groupdict("0")
+        days = int(groups["days"])
+        hours = int(groups["hours"])
+        minutes = int(groups["minutes"])
+        return days * 24 * 60 + hours * 60 + minutes
 
     def filter_row(row):
         return [
@@ -44,14 +48,19 @@ def filter_itinerary(data):
             "-".join(row[19].split("||")[:-1]),
         ]
 
-    return [filter_row(row) for row in data]
+    return [filter_row(row) for row in data if len(row) == FLIGHT_ROW_SIZE]
 
 
 def main():
-    upstream = Middleware(PublisherConsumer(Queues.FLIGHTS_RAW))
+    upstream = Middleware(PublisherConsumer(Queues.RAW_FLIGHTS))
     downstream = Middleware(
-        PublisherSuscriber(Queues.FILTER_BY_STOPS, Subs.FLIGHTS)
+        PublisherSuscriber(Queues.DIST_CALCULATION, Subs.FLIGHTS)
     )
+
+    stats = {
+        "invalids": [],
+        "processed": 0,
+    }
 
     def consume(msg: bytes, delivery_tag: int):
         filter_name = "base_filter"
@@ -64,16 +73,19 @@ def main():
         upstream.send_ack(delivery_tag)
         header, data = Protocol.deserialize_msg(msg)
 
-        shape = (len(data), len(data[0]))
-        print(f"{filter_name} | received | {header} | {shape}")
         if header == "EOF":
             stop_consuming(filter_name, data, header, upstream, downstream)
+            return
 
-        if header == "airports":
-            data = filter_airport(data)
-        elif header == "itineraries":
-            data = filter_itinerary(data)
+        stats["processed"] += len(data)
+        stats["invalids"].extend(
+            [row for row in data if len(row) != FLIGHT_ROW_SIZE]
+        )
+        data = filter_itinerary(data)
 
         downstream.send_message(Protocol.serialize_msg(header, data))
 
     upstream.get_message(consume)
+
+    for stat, value in stats.items():
+        print(f"base_filter | {stat}", value, flush=True)

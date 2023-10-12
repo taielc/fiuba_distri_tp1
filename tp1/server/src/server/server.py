@@ -16,81 +16,95 @@ class Server:
         self.sink = None
 
     def run(self):
-        pipeline = Middleware(PublisherConsumer(Queues.FLIGHTS_RAW))
-        self.sink = Middleware(PublisherConsumer(Queues.RESULTS))
+        sink = Middleware(PublisherConsumer(Queues.RESULTS))
         with self.socket.accept() as client_sock:
-            print("server | connected")
+            print("server | connected", flush=True)
             self.client_sock = client_sock
-            self.recv_airports(client_sock, pipeline)
-            self.recv_itineraries(client_sock, pipeline)
-            self.send_results(client_sock)
+            self.recv_airports(client_sock)
+            self.recv_itineraries(client_sock)
+            self.send_results(client_sock, sink)
         self.socket.close()
-        print("server | disconnected")
+        print("server | disconnected", flush=True)
 
     def _recv_file(
         self,
         file: str,
         sock: Socket,
-        pipeline: Middleware,
+        downstream: Middleware,
     ):
-        print(f"server | receiving | {file}")
+        print(f"server | receiving | {file}", flush=True)
         received = 0
         while True:
             batch = Protocol.receive_batch(sock)
             if batch is None:
-                print(f"server | EOF | {file}")
+                print(f"server | EOF | {file}", flush=True)
                 break
             received += len(batch)
-            self.process_batch(pipeline, file, batch)
-        print(f"server | received | {file} | {received}")
+            self.process_batch(downstream, file, batch)
+        downstream.send_message(Protocol.serialize_msg("EOF", [[0]]))
+        print(f"server | received | {file} | {received}", flush=True)
 
     def process_batch(
         self,
-        pipeline: Middleware,
+        downstream: Middleware,
         file: str,
         batch: list[str],
     ):
-        data = list(map(lambda row: row.split(";"), batch))
-        pipeline.send_message(Protocol.serialize_msg(file, data))
+        data = list(
+            map(
+                lambda row: row.split(";" if file == "airports" else ","), batch
+            )
+        )
+        downstream.send_message(Protocol.serialize_msg(file, data))
 
     def recv_airports(
         self,
         sock: Socket,
-        pipeline: Middleware,
     ):
-        self._recv_file("airports", sock, pipeline)
+        airports = Middleware(PublisherSuscriber("", Subs.AIRPORTS))
+        self._recv_file("airports", sock, airports)
+        airports.close_connection()
 
     def recv_itineraries(
         self,
         sock: Socket,
-        pipeline: Middleware,
     ):
-        self._recv_file("itineraries", sock, pipeline)
+        raw_flights = Middleware(PublisherConsumer(Queues.RAW_FLIGHTS))
+        self._recv_file("itineraries", sock, raw_flights)
+        raw_flights.close_connection()
 
     def send_results(
         self,
         sock: Socket,
+        sink: Middleware,
     ):
-        print("server | results")
-        sock.send(
-            Protocol.serialize_batch(["example;result1", "example;result2"])
-        )
+        print("server | results", flush=True)
 
-        self.sink.get_message(self.handle_message)
+        queries_results = [False, False, True, False]
 
-        self.sink.close_connection()
+        stats = {"query1": 0, "query2": 0, "query3": 0, "query4": 0}
 
-    def handle_message(self, message: bytes, delivery_tag: int):
-        print("message is: ", message)
-        if message is None:
-            self.sink.send_nack(delivery_tag)
-            return
+        def handle_message(message: bytes, delivery_tag: int):
+            if message is None:
+                sink.send_nack(delivery_tag)
+                return
 
-        self.sink.send_ack(delivery_tag)
-        header, results = Protocol.deserialize_msg(message)
-        print(f"server | msg | {header} | {len(results)}")
-        if header == "EOF":
-            self.client_sock.send(Protocol.EOF_MESSAGE)
-            self.sink.close_connection()
-            return
-        self.client_sock.send(Protocol.serialize_batch(results))
+            sink.send_ack(delivery_tag)
+            header, results = Protocol.deserialize_msg(message)
+            if header == "EOF":
+                query = results[0][0]
+                queries_results[int(query.lstrip("query")) - 1] = True
+                print(f"server | EOF | {query} | {queries_results}", flush=True)
+                if all(queries_results):
+                    sock.send(Protocol.EOF_MESSAGE)
+                    sink.close_connection()
+                return
+
+            stats[header] += len(results)
+            final = [";".join([header, *result]) for result in results]
+            sock.send(Protocol.serialize_batch(final))
+
+        sink.get_message(handle_message)
+
+        for query, count in stats.items():
+            print(f"server | {query} | {count}", flush=True)

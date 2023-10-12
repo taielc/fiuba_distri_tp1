@@ -38,33 +38,19 @@ services:
       args:
         - package=server
         - include=middleware
+    ports:
+      - "9000:9000"
     volumes:
       - ../tp1/lib/src:/tp1/lib/src
       - ../tp1/middleware/src:/tp1/middleware/src
       - ../tp1/server/src:/tp1/server/src
     depends_on:
       - middleware
-  
-  client:
-    container_name: client
-    image: tp1-client
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        - package=client
-        - include=lib
-    depends_on:
-      - server
-    volumes:
-      - ../.data:/.data
-      - ../tp1/lib/src:/tp1/lib/src
-      - ../tp1/client/src:/tp1/client/src
 
   {% for worker, replicas in workers %}
-  {% for replica in range(1, replicas + 1) %}
+  {%- for replica in range(1, replicas + 1) %}
   {{ worker }}-{{ replica }}:
     <<: *{{ worker }}
     container_name: "{{ worker }}-{{ replica }}"
-  {% endfor %}
+  {%- endfor %}
   {% endfor %}
