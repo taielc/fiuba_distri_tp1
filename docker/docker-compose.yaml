@@ -65,9 +65,9 @@ x-general_avg_price: &general_avg_price
   environment:
     - REPLICAS=1
 
-x-partial_route_agg: &partial_route_agg
+x-aggregate_by_route: &aggregate_by_route
   image: tp1-worker
-  command: partial_route_agg
+  command: aggregate_by_route
   build:
     context: ..
     dockerfile: docker/Dockerfile
@@ -176,9 +176,9 @@ services:
     <<: *general_avg_price
     container_name: "general_avg_price-1"
   
-  partial_route_agg-1:
-    <<: *partial_route_agg
-    container_name: "partial_route_agg-1"
+  aggregate_by_route-1:
+    <<: *aggregate_by_route
+    container_name: "aggregate_by_route-1"
   
   price_by_route-1:
     <<: *price_by_route

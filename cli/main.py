@@ -219,7 +219,7 @@ QUERY_DEFAULTS = [
     ["base_filter"],  # [0] base
     ["filter_by_stops"],
     ["dist_calculator"],
-    ["filter_by_stops", "partial_route_agg", "fastest_by_route"],
+    ["filter_by_stops", "aggregate_by_route", "fastest_by_route"],
     ["general_avg_price", "filter_by_price", "price_by_route"],
 ]
 FILTER_DEFAULTS = {
@@ -230,7 +230,7 @@ FILTER_DEFAULTS = {
     # 2
     "dist_calculator": 1,
     # 3
-    "partial_route_agg": 1,
+    "aggregate_by_route": 1,
     "fastest_by_route": 1,
     # 4
     "general_avg_price": 1,
