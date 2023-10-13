@@ -16,7 +16,6 @@ Indice:
   - [Introducción](#introducción)
   - [Desarrollo](#desarrollo)
   - [DAG de la solución](#dag-de-la-solución)
-  - [Instrucciones para levantar el sistema](#instrucciones-para-levantar-el-sistema)
   - [Vistas](#vistas)
     - [Física](#física)
       - [Despliegue](#despliegue)
@@ -64,28 +63,6 @@ Así, el servidor cuenta los EOF que recibe con un body que tiene el nombre de u
 ## DAG de la solución
 
 ![](docs/diagramas/DAG.png)
-
-## Instrucciones para levantar el sistema
-
-El cliente lee del archivo __itineraries.csv__ (en ```tp1/.data```), y la cantidad de lineas está configurada en la constante DATASET_SIZE en ```tp1/lib/src/config.py```. Además, hay que agregar en ```tp1/.data``` el archivo de aeropuertos. 
-
-Luego, en una terminal:
-
-```
-tp run --worker-name <cantidad_replicas>
-```
-
-Si se desean correr todas las queries, se debe modificar el diccionario FILTER_DEFAULTS en ```tp1/cli/main.py``` y definir ahí la cantidad de réplicas que se desean (excluyendo los workers *fastest_by_route* y *price_by_route*, que solo pueden tener una sola instancia). Luego se corre en una terminal:
-
-```
-tp run -q 1 -q 2 -q 3 -q 4
-```
-
-Para más información:
-
-```
-poetry run tp --help
-```
 
 ## Vistas
 
