@@ -17,14 +17,13 @@ class Server:
         self.query_amount = 4
 
     def run(self):
-        sink = Middleware(ProducerConsumer(Queues.RESULTS))
         print("READY", flush=True)
         with self.socket.accept() as client_sock:
             print("server | connected", flush=True)
             self.client_sock = client_sock
             self.recv_airports(client_sock)
             self.recv_itineraries(client_sock)
-            self.send_results(client_sock, sink)
+            self.send_results(client_sock)
         self.socket.close()
         print("server | disconnected", flush=True)
 
@@ -78,9 +77,9 @@ class Server:
     def send_results(
         self,
         sock: Socket,
-        sink: Middleware,
     ):
         print("server | results", flush=True)
+        sink = Middleware(ProducerConsumer(Queues.RESULTS))
 
         queries = ["query1", "query2", "query3", "query4"]
         finished = {query: False for query in queries}

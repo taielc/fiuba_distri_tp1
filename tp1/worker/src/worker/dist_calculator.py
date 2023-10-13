@@ -21,7 +21,7 @@ def main():
     flights = Middleware(
         ProducerSubscriber(Subs.FLIGHTS, Queues.DIST_CALCULATION)
     )
-    downstream = Middleware(ProducerConsumer(Queues.RESULTS))
+    results = Middleware(ProducerConsumer(Queues.RESULTS))
 
     distances = {}
     airports_coordinates = {}
@@ -72,7 +72,7 @@ def main():
                 data,
                 header,
                 flights,
-                downstream,
+                results,
                 "query2",
             )
             return
@@ -94,13 +94,13 @@ def main():
                 )
 
             if distances[route] * DISTANCE_MULTIPLIER < int(row[5] or "0"):
-                final.append([row[0], row[1], row[2], row[5], distances[route]])
+                final.append([row[0], row[1], row[2], row[5]])
         stats["passed"] += len(final)
 
         if not final:
             return
 
-        downstream.send_message(
+        results.send_message(
             Protocol.serialize_msg("query2", final),
         )
 

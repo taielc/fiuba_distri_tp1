@@ -48,7 +48,8 @@ def main():
     final = []
     for route, route_stats in routes_stats.items():
         avg = round(route_stats["sum"] / route_stats["count"] / 100, 2)
-        final.append([route[0], route[1], route_stats["max"], avg])
+        max_ = f"{route_stats['max'][:-2]}.{route_stats['max'][-2:]}"
+        final.append([route[0], route[1], avg, max_])
     results.send_message(Protocol.serialize_msg("query4", final))
     results.send_message(Protocol.serialize_msg("EOF", [["query4"]]))
     results.close_connection()

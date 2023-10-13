@@ -1,9 +1,9 @@
 version: '3'
 
 
-x-base_filter: &base_filter
+x-partial_route_agg: &partial_route_agg
   image: tp1-worker
-  command: base_filter
+  command: partial_route_agg
   build:
     context: ..
     dockerfile: docker/Dockerfile
@@ -15,11 +15,27 @@ x-base_filter: &base_filter
     - ../tp1/middleware/src:/tp1/middleware/src
     - ../tp1/worker/src:/tp1/worker/src
   environment:
-    - REPLICAS=1
+    - REPLICAS=2
 
 x-filter_by_price: &filter_by_price
   image: tp1-worker
   command: filter_by_price
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=2
+
+x-price_by_route: &price_by_route
+  image: tp1-worker
+  command: price_by_route
   build:
     context: ..
     dockerfile: docker/Dockerfile
@@ -47,7 +63,23 @@ x-filter_by_stops: &filter_by_stops
     - ../tp1/middleware/src:/tp1/middleware/src
     - ../tp1/worker/src:/tp1/worker/src
   environment:
-    - REPLICAS=1
+    - REPLICAS=2
+
+x-base_filter: &base_filter
+  image: tp1-worker
+  command: base_filter
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=3
 
 x-general_avg_price: &general_avg_price
   image: tp1-worker
@@ -63,39 +95,7 @@ x-general_avg_price: &general_avg_price
     - ../tp1/middleware/src:/tp1/middleware/src
     - ../tp1/worker/src:/tp1/worker/src
   environment:
-    - REPLICAS=1
-
-x-aggregate_by_route: &aggregate_by_route
-  image: tp1-worker
-  command: aggregate_by_route
-  build:
-    context: ..
-    dockerfile: docker/Dockerfile
-    args:
-      - include=middleware
-      - package=worker
-  volumes:
-    - ../tp1/lib/src:/tp1/lib/src
-    - ../tp1/middleware/src:/tp1/middleware/src
-    - ../tp1/worker/src:/tp1/worker/src
-  environment:
-    - REPLICAS=1
-
-x-price_by_route: &price_by_route
-  image: tp1-worker
-  command: price_by_route
-  build:
-    context: ..
-    dockerfile: docker/Dockerfile
-    args:
-      - include=middleware
-      - package=worker
-  volumes:
-    - ../tp1/lib/src:/tp1/lib/src
-    - ../tp1/middleware/src:/tp1/middleware/src
-    - ../tp1/worker/src:/tp1/worker/src
-  environment:
-    - REPLICAS=1
+    - REPLICAS=2
 
 x-dist_calculator: &dist_calculator
   image: tp1-worker
@@ -111,7 +111,7 @@ x-dist_calculator: &dist_calculator
     - ../tp1/middleware/src:/tp1/middleware/src
     - ../tp1/worker/src:/tp1/worker/src
   environment:
-    - REPLICAS=1
+    - REPLICAS=2
 
 x-fastest_by_route: &fastest_by_route
   image: tp1-worker
@@ -160,33 +160,54 @@ services:
       - middleware
 
   
-  base_filter-1:
-    <<: *base_filter
-    container_name: "base_filter-1"
+  partial_route_agg-1:
+    <<: *partial_route_agg
+    container_name: "partial_route_agg-1"
+  partial_route_agg-2:
+    <<: *partial_route_agg
+    container_name: "partial_route_agg-2"
   
   filter_by_price-1:
     <<: *filter_by_price
     container_name: "filter_by_price-1"
-  
-  filter_by_stops-1:
-    <<: *filter_by_stops
-    container_name: "filter_by_stops-1"
-  
-  general_avg_price-1:
-    <<: *general_avg_price
-    container_name: "general_avg_price-1"
-  
-  aggregate_by_route-1:
-    <<: *aggregate_by_route
-    container_name: "aggregate_by_route-1"
+  filter_by_price-2:
+    <<: *filter_by_price
+    container_name: "filter_by_price-2"
   
   price_by_route-1:
     <<: *price_by_route
     container_name: "price_by_route-1"
   
+  filter_by_stops-1:
+    <<: *filter_by_stops
+    container_name: "filter_by_stops-1"
+  filter_by_stops-2:
+    <<: *filter_by_stops
+    container_name: "filter_by_stops-2"
+  
+  base_filter-1:
+    <<: *base_filter
+    container_name: "base_filter-1"
+  base_filter-2:
+    <<: *base_filter
+    container_name: "base_filter-2"
+  base_filter-3:
+    <<: *base_filter
+    container_name: "base_filter-3"
+  
+  general_avg_price-1:
+    <<: *general_avg_price
+    container_name: "general_avg_price-1"
+  general_avg_price-2:
+    <<: *general_avg_price
+    container_name: "general_avg_price-2"
+  
   dist_calculator-1:
     <<: *dist_calculator
     container_name: "dist_calculator-1"
+  dist_calculator-2:
+    <<: *dist_calculator
+    container_name: "dist_calculator-2"
   
   fastest_by_route-1:
     <<: *fastest_by_route
