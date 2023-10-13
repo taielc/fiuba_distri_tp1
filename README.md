@@ -16,6 +16,7 @@ Indice:
   - [Introducción](#introducción)
   - [Desarrollo](#desarrollo)
   - [DAG de la solución](#dag-de-la-solución)
+  - [Instrucciones para levantar el sistema](#instrucciones-para-levantar-el-sistema)
   - [Vistas](#vistas)
     - [Física](#física)
       - [Despliegue](#despliegue)
