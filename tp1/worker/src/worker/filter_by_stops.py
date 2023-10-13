@@ -32,7 +32,6 @@ def main():
 
         if header == "EOF":
             stop_consuming(
-                WORKER_TYPE,
                 data,
                 header,
                 upstream,

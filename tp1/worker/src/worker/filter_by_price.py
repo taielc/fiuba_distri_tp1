@@ -95,7 +95,6 @@ def main():
             avg_price.get_message(consume_avg_price)
             send_downstream()
             stop_consuming(
-                WORKER_NAME,
                 data,
                 header,
                 flights,

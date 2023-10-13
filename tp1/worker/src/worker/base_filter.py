@@ -72,7 +72,6 @@ def main():
 
         if header == "EOF":
             stop_consuming(
-                WORKER_NAME,
                 data,
                 header,
                 upstream,

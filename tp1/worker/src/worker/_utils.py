@@ -5,7 +5,6 @@ from ._config import REPLICAS
 
 
 def stop_consuming(
-    filter_name: str,
     data: list[list],
     header: str,
     upstream: Middleware,

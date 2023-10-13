@@ -25,7 +25,7 @@ def main():
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            stop_consuming(WORKER_TYPE, data, header, upstream, downstream)
+            stop_consuming(data, header, upstream, downstream)
             return
 
         while data:
