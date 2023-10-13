@@ -225,17 +225,17 @@ QUERY_DEFAULTS = [
 FILTER_DEFAULTS = {
     # 0
     "base_filter": 1,
-    # 1
+    # query 1
     "filter_by_stops": 1,  # & 3
-    # 2
+    # query 2
     "dist_calculator": 1,
-    # 3
+    # query 3
     "aggregate_by_route": 1,
-    "fastest_by_route": 1,
-    # 4
+    "fastest_by_route": 1,  # singleton, SOLO PUEDE TENER UNA INSTANCIA
+    # query 4
     "general_avg_price": 1,
     "filter_by_price": 1,
-    "price_by_route": 1,
+    "price_by_route": 1,    # singleton, SOLO PUEDE TENER UNA INSTANCIA
 }
 
 
