@@ -224,18 +224,18 @@ QUERY_DEFAULTS = [
 ]
 FILTER_DEFAULTS = {
     # 0
-    "base_filter": 1,
+    "base_filter": 3,
     # 1
-    "filter_by_stops": 1,  # & 3
+    "filter_by_stops": 2,  # & 3
     # 2
-    "dist_calculator": 1,
+    "dist_calculator": 2,
     # 3
-    "aggregate_by_route": 1,
-    "fastest_by_route": 1,
+    "partial_route_agg": 2,
+    "fastest_by_route": 1, # FIXED
     # 4
-    "general_avg_price": 1,
-    "filter_by_price": 1,
-    "price_by_route": 1,
+    "general_avg_price": 2,
+    "filter_by_price": 2,
+    "price_by_route": 1, # FIXED
 }
 
 

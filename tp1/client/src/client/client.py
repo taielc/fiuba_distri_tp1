@@ -40,7 +40,7 @@ class Client:
             for batch in Reader(f, batch_size=BATCH_SIZE):
                 count += len(batch)
                 sock.send(Protocol.serialize_batch(batch))
-                if count % 10000 == 0:
+                if count % 100000 == 0:
                     print(f"client | sent | {count}")
             sock.send(Protocol.EOF_MESSAGE)
 

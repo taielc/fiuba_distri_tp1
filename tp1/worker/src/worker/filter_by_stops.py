@@ -77,7 +77,7 @@ def main():
         ]
 
         filtered_q1 = [
-            [row[0], row[1], row[2], f"{row[4][:-2]}.{row[4][-2:]}"]
+            [row[0], row[1], row[2], f"{row[4][:-2]}.{row[4][-2:]}", row[6]]
             for row in filtered
         ]
 

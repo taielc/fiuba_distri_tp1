@@ -2,7 +2,7 @@
 from os import getenv
 
 
-DATASET_SIZE = 100000
+DATASET_SIZE = 10_000_000
 
 SERVER_HOST = getenv("SERVER_HOST", "server")
 SERVER_PORT = 9000
