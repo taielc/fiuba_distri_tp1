@@ -1,5 +1,6 @@
-from . import paths
 from subprocess import run, CalledProcessError, PIPE
+
+from . import paths
 
 
 BASE_BUILD_COMMAND = f"""docker build \\
@@ -35,3 +36,17 @@ def is_running(container: str):
         return True
     except CalledProcessError:
         return False
+
+
+def compose(args: tuple[str]):
+    command = " ".join(args)
+    compose_path = paths.DOCKER / "docker-compose.yaml"
+    full_command = f"docker-compose -f {compose_path} {command}"
+    print(f"Running docker-compose:\n> {full_command}")
+    run(
+        full_command,
+        cwd=paths.ROOT,
+        shell=True,
+        check=True,
+        start_new_session=False,
+    )

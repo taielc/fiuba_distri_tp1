@@ -15,7 +15,7 @@ x-base_filter: &base_filter
     - ../tp1/middleware/src:/tp1/middleware/src
     - ../tp1/worker/src:/tp1/worker/src
   environment:
-    - REPLICAS=2
+    - REPLICAS=4
 
 x-filter_by_stops: &filter_by_stops
   image: tp1-worker
@@ -170,6 +170,12 @@ services:
   base_filter-2:
     <<: *base_filter
     container_name: "base_filter-2"
+  base_filter-3:
+    <<: *base_filter
+    container_name: "base_filter-3"
+  base_filter-4:
+    <<: *base_filter
+    container_name: "base_filter-4"
   
   filter_by_stops-1:
     <<: *filter_by_stops

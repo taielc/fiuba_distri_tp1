@@ -2,5 +2,10 @@ from .packages import (
     BUILDABLE_PACKAGES,
     RUNNABLE_PACKAGES,
     PACKAGES,
+    run_on_package,
 )
-from .template_parser import render_template
+from .services import (
+    get_services,
+    configure_docker_compose,
+    stop_services,
+)

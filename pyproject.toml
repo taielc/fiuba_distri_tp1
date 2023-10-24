@@ -4,19 +4,21 @@ version = "0.0.1"
 description = "TP1 de Sistemas Distribuidos I"
 authors = ["taielc"]
 readme = "README.md"
-packages = [{ include = "cli" }]
-include = ["docker-compose.yaml", { path = "docker" }, { path = "docs" }]
+packages = [{ include = "cli", from = "." }]
+include = ["docker-compose.yaml", { path = "docker" }, { path = "docs" }, ]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools]
+py-modules = []
 
 [tool.poetry.scripts]
 tp = "cli.main:tp1"
 
 [tool.poetry.dependencies]
 python = ">=3.10"
-client = { path = "tp1/client", develop = true }
-lib = { path = "tp1/lib", develop = true }
-server = { path = "tp1/server", develop = true }
-middleware = { path = "tp1/middleware", develop = true }
-worker = { path = "tp1/worker", develop = true }
 click = "^8.1.7"
 jinja2 = "^3.1.2"
 
