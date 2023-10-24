@@ -47,6 +47,42 @@ services:
     depends_on:
       - middleware
 
+  ## singleton workers
+
+  fastest_by_route:
+    image: tp1-worker
+    command: fastest_by_route
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - include=middleware
+        - package=worker
+    volumes:
+      - ../tp1/lib/src:/tp1/lib/src
+      - ../tp1/middleware/src:/tp1/middleware/src
+      - ../tp1/worker/src:/tp1/worker/src
+    environment:
+      - REPLICAS=1
+
+  price_by_route:
+    image: tp1-worker
+    command: price_by_route
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - include=middleware
+        - package=worker
+    volumes:
+      - ../tp1/lib/src:/tp1/lib/src
+      - ../tp1/middleware/src:/tp1/middleware/src
+      - ../tp1/worker/src:/tp1/worker/src
+    environment:
+      - REPLICAS=1
+
+  ## non-singleton workers
+
   {% for worker, replicas in workers %}
   {%- for replica in range(1, replicas + 1) %}
   {{ worker }}-{{ replica }}:
