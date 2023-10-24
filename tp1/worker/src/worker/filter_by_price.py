@@ -4,8 +4,10 @@ from middleware import Middleware, ProducerConsumer, ProducerSubscriber
 from config import Queues, Subs, BATCH_SIZE
 from protocol import Protocol
 
-from ._config import REPLICAS
 from ._utils import stop_consuming
+from logs import getLogger
+
+log = getLogger(__name__)
 
 
 def parse_coordinates(lat: str, lon: str):
@@ -50,7 +52,7 @@ def main():
     def send_downstream():
         # is in x100
         avg_price_value = stats["sum_price"] / stats["rows_count"]
-        print("avg_price_value |", avg_price_value, flush=True)
+        log.hinfo(f"avg_price_value | {avg_price_value}")
 
         final = []
         stats["total"] = 0
@@ -79,19 +81,18 @@ def main():
             stats["total"] += len(final)
             downstream.send_message(Protocol.serialize_msg("routes", final))
 
-        print("processed |", stats["processed"], flush=True)
-        print("total |", stats["total"], flush=True)
+        log.hinfo(f"processed | {stats['processed']}")
+        log.hinfo(f"total | {stats['total']}")
 
     def consume(msg: bytes, delivery_tag: int):
         if msg is None:
             flights.send_nack(delivery_tag)
             return
-        flights.send_ack(delivery_tag)
 
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
-            print("airports | EOF", flush=True)
+            log.hinfo("airports | EOF")
             avg_price.get_message(consume_avg_price)
             send_downstream()
             stop_consuming(
@@ -99,6 +100,7 @@ def main():
                 header,
                 flights,
                 downstream,
+                delivery_tag,
                 "query4",
             )
             return
@@ -108,8 +110,9 @@ def main():
             if row[4] == "":
                 continue
             routes_prices[(row[1], row[2])].append(int(row[4]))
+        flights.send_ack(delivery_tag)
 
-    print("READY", flush=True)
+    log.hinfo("READY")
     flights.get_message(consume)
 
     downstream.close_connection()

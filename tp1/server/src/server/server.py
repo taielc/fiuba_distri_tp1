@@ -1,4 +1,4 @@
-from logging import getLogger
+from logs import getLogger
 
 from config import SERVER_PORT, Queues, Subs
 from middleware import Middleware, ProducerConsumer, Publisher
@@ -17,15 +17,15 @@ class Server:
         self.query_amount = 4
 
     def run(self):
-        print("READY", flush=True)
+        log.hinfo("READY")
         with self.socket.accept() as client_sock:
-            print("server | connected", flush=True)
+            log.hinfo("server | connected")
             self.client_sock = client_sock
             self.recv_airports(client_sock)
             self.recv_itineraries(client_sock)
             self.send_results(client_sock)
         self.socket.close()
-        print("server | disconnected", flush=True)
+        log.hinfo("server | disconnected")
 
     def _recv_file(
         self,
@@ -33,17 +33,17 @@ class Server:
         sock: Socket,
         downstream: Middleware,
     ):
-        print(f"server | receiving | {file}", flush=True)
+        log.hinfo(f"server | receiving | {file}")
         received = 0
         while True:
             batch = Protocol.receive_batch(sock)
             if batch is None:
-                print(f"server | EOF | {file}", flush=True)
+                log.hinfo(f"server | EOF | {file}")
                 break
             received += len(batch)
             self.process_batch(downstream, file, batch)
         downstream.send_message(Protocol.serialize_msg("EOF", [[0]]))
-        print(f"server | received | {file} | {received}", flush=True)
+        log.hinfo(f"server | received | {file} | {received}")
 
     def process_batch(
         self,
@@ -78,7 +78,7 @@ class Server:
         self,
         sock: Socket,
     ):
-        print("server | results", flush=True)
+        log.hinfo("server | results")
         sink = Middleware(ProducerConsumer(Queues.RESULTS))
 
         queries = ["query1", "query2", "query3", "query4"]
@@ -99,9 +99,8 @@ class Server:
                 query = results[0][0]
                 finished[query] = True
                 if self.query_amount != 0 and query == stats.keys():
-                    print(
+                    log.hinfo(
                         f"server | EOF | {query} | {finished} | {stats[query]}",
-                        flush=True,
                     )
                 if all(finished.values()):
                     sock.send(Protocol.EOF_MESSAGE)
@@ -115,4 +114,4 @@ class Server:
         sink.get_message(handle_message)
 
         for query, count in stats.items():
-            print(f"server | {query} | {count}", flush=True)
+            log.hinfo(f"server | {query} | {count}")

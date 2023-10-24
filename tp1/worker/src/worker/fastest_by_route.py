@@ -4,6 +4,9 @@ from middleware import Middleware
 from middleware.producer_consumer import ProducerConsumer
 
 from ._utils import stop_consuming, top_2_fastest_by_route
+from logs import getLogger
+
+log = getLogger(__name__)
 
 WORKER_TYPE = "top_2_fastest_flights_by_route_acc"
 
@@ -16,11 +19,10 @@ def main():
         top_2_fastest = {}
 
         if msg is None:
-            print(f"{WORKER_TYPE} | no-message")
+            log.error(f"{WORKER_TYPE} | no-message")
             upstream.send_nack(delivery_tag)
             return
 
-        upstream.send_ack(delivery_tag)
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
@@ -29,6 +31,7 @@ def main():
                 header,
                 upstream,
                 results,
+                delivery_tag,
                 result="query3",)
             return
 
@@ -38,8 +41,9 @@ def main():
         
         acc_results = [flight for flights in top_2_fastest.values() for flight in flights]
         results.send_message(Protocol.serialize_msg("query3", acc_results))
+        upstream.send_ack(delivery_tag)
 
-    print(f"{WORKER_TYPE} | READY", flush=True)
+    log.hinfo(f"{WORKER_TYPE} | READY")
     upstream.get_message(consume)
 
-    print(f"{WORKER_TYPE} | running")
+    log.hinfo(f"{WORKER_TYPE} | running")

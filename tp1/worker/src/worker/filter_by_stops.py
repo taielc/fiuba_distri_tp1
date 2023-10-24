@@ -4,6 +4,9 @@ from middleware import Middleware, ProducerConsumer, ProducerSubscriber
 
 from ._utils import stop_consuming
 from ._config import REPLICAS
+from logs import getLogger
+
+log = getLogger(__name__)
 
 WORKER_TYPE = "filter_by_stops"
 
@@ -23,11 +26,9 @@ def main():
 
     def consume(msg: bytes, delivery_tag: int):
         if msg is None:
-            print("no-message")
+            log.error("no-message")
             upstream.send_nack(delivery_tag)
             return
-
-        upstream.send_ack(delivery_tag)
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
@@ -36,29 +37,22 @@ def main():
                 header,
                 upstream,
                 results,
+                delivery_tag,
                 result="query1",
             )
 
             stopped = int(data[0][0]) + 1
-            print(
-                f"{WORKER_TYPE} | {header} | {stopped}/{REPLICAS}", flush=True
+            log.hinfo(
+                f"{header} | {stopped}/{REPLICAS}"
             )
             if stopped == REPLICAS:
-                print(f"{WORKER_TYPE} | sending | EOF", flush=True)
+                log.hinfo(f"sending | EOF")
                 downstream.send_message(
                     Protocol.serialize_msg(header, [["0"], [REPLICAS]])
                 )
 
             return
 
-        # [ legId,
-        #   startingAirport,
-        #   destinationAirport,
-        #   travelDuration,
-        #   totalFare,
-        #   totalTravelDistance,
-        #   segmentsArrivalAirportCode
-        # ]
         stats["processed"] += len(data)
         filtered = []
         while data:
@@ -70,6 +64,7 @@ def main():
         stats["passed"] += len(filtered)
 
         if not filtered:
+            upstream.send_ack(delivery_tag)
             return
 
         filtered_q3 = [
@@ -83,9 +78,10 @@ def main():
 
         downstream.send_message(Protocol.serialize_msg(header, filtered_q3))
         results.send_message(Protocol.serialize_msg("query1", filtered_q1))
+        upstream.send_ack(delivery_tag)
 
-    print("READY", flush=True)
+    log.hinfo("READY")
     upstream.get_message(consume)
 
     for stat, value in stats.items():
-        print(f"{stat} | {value}", flush=True)
+        log.hinfo(f"{stat} | {value}")

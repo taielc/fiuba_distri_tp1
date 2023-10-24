@@ -4,6 +4,9 @@ from protocol import Protocol
 from config import Queues, Subs
 
 from ._utils import stop_consuming
+from logs import getLogger
+
+log = getLogger(__name__)
 
 
 FLIGHT_ROW_SIZE = 27
@@ -30,7 +33,7 @@ def filter_itinerary(data):
         match = patron.match(duration)
 
         if match is None:
-            print("parsing error | duration |", duration)
+            log.error("parsing error | duration |", duration)
             return -1
 
         days = int(match.group(1) or 0)
@@ -63,11 +66,10 @@ def main():
 
     def consume(msg: bytes, delivery_tag: int):
         if msg is None:
-            print("no-message")
+            log.error("no-message")
             upstream.send_nack(delivery_tag)
             return
 
-        upstream.send_ack(delivery_tag)
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
@@ -76,6 +78,7 @@ def main():
                 header,
                 upstream,
                 downstream,
+                delivery_tag,
             )
             return
 
@@ -86,9 +89,10 @@ def main():
         data = filter_itinerary(data)
 
         downstream.send_message(Protocol.serialize_msg(header, data))
+        upstream.send_ack(delivery_tag)
 
-    print("READY", flush=True)
+    log.hinfo("READY")
     upstream.get_message(consume)
 
     for stat, value in stats.items():
-        print(f"{stat} | {value}", flush=True)
+        log.hinfo(f"{stat} | {value}")

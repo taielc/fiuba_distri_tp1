@@ -20,7 +20,7 @@ class Publisher(MiddlewareType):
         self.channel.exchange_declare(
             exchange=self._exchange_name,
             exchange_type="fanout",
-            auto_delete=True,
+            auto_delete=False,
         )
 
     def send_message(self, message: str):

@@ -4,6 +4,9 @@ from config import DISTANCE_MULTIPLIER, Queues, Subs
 from protocol import Protocol
 
 from ._utils import stop_consuming
+from logs import getLogger
+
+log = getLogger(__name__)
 
 
 def parse_coordinates(lat: str, lon: str):
@@ -31,7 +34,6 @@ def main():
         if msg is None:
             airports.send_nack(delivery_tag)
             return
-        airports.send_ack(delivery_tag)
 
         header, data = Protocol.deserialize_msg(msg)
         # [0] Airport Code;
@@ -39,7 +41,8 @@ def main():
         # [6] Longitude;
 
         if header == "EOF":
-            print("airports | EOF", flush=True)
+            log.hinfo("airports | EOF")
+            airports.send_ack(delivery_tag)
             airports.close_connection()
             return
 
@@ -48,10 +51,13 @@ def main():
                 invalids.append(row)
                 continue
             airports_coordinates[row[0]] = parse_coordinates(row[5], row[6])
+        
+        airports.send_ack(delivery_tag)
 
-    print("READY", flush=True)
+    log.hinfo("READY")
     airports.get_message(consume_airports)
-    print("airports | invalid |", invalids, flush=True)
+    if invalids:
+        log.warning(f"airports | invalid | {invalids}")
 
     stats = {
         "processed": 0,
@@ -63,7 +69,6 @@ def main():
         if msg is None:
             flights.send_nack(delivery_tag)
             return
-        flights.send_ack(delivery_tag)
 
         header, data = Protocol.deserialize_msg(msg)
 
@@ -73,6 +78,7 @@ def main():
                 header,
                 flights,
                 results,
+                delivery_tag,
                 "query2",
             )
             return
@@ -97,14 +103,13 @@ def main():
                 final.append([row[0], row[1], row[2], row[5]])
         stats["passed"] += len(final)
 
-        if not final:
-            return
-
-        results.send_message(
-            Protocol.serialize_msg("query2", final),
-        )
+        if final:
+            results.send_message(
+                Protocol.serialize_msg("query2", final),
+            )
+        flights.send_ack(delivery_tag)
 
     flights.get_message(consume_flights)
 
     for stat, value in stats.items():
-        print(f"{stat} |", value, flush=True)
+        log.hinfo(f"{stat} | {value}")

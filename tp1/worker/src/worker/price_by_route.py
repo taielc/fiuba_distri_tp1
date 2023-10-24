@@ -2,6 +2,9 @@ from collections import defaultdict
 from config import Queues
 from protocol import Protocol
 from middleware import Middleware, ProducerConsumer
+from logs import getLogger
+
+log = getLogger(__name__)
 
 
 WORKER_TYPE = "price_by_route"
@@ -19,13 +22,13 @@ def main():
 
     def consume(msg: bytes, delivery_tag: int):
         if msg is None:
-            print("no-message")
+            log.error("no-message")
             upstream.send_nack(delivery_tag)
             return
-        upstream.send_ack(delivery_tag)
         header, data = Protocol.deserialize_msg(msg)
 
         if header == "EOF":
+            upstream.send_ack(delivery_tag)
             upstream.close_connection()
             return
 
@@ -42,17 +45,19 @@ def main():
             route_stats["sum"] += partial_price
             route_stats["count"] += partial_count
 
-    print("READY", flush=True)
+        upstream.send_ack(delivery_tag)
+
+    log.hinfo("READY")
     upstream.get_message(consume)
 
     final = []
     for route, route_stats in routes_stats.items():
         avg = round(route_stats["sum"] / route_stats["count"] / 100, 2)
-        max_ = f"{route_stats['max'][:-2]}.{route_stats['max'][-2:]}"
+        max_ = f"{route_stats['max'] // 100}.{route_stats['max'] % 100}"
         final.append([route[0], route[1], avg, max_])
     results.send_message(Protocol.serialize_msg("query4", final))
     results.send_message(Protocol.serialize_msg("EOF", [["query4"]]))
     results.close_connection()
 
     for stat, value in stats.items():
-        print(f"{stat} | {value}", flush=True)
+        log.hinfo(f"{stat} | {value}")

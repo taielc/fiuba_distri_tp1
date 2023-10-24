@@ -2,6 +2,9 @@ from protocol import Protocol
 from middleware import Middleware
 
 from ._config import REPLICAS
+from logs import getLogger
+
+log = getLogger(__name__)
 
 
 def stop_consuming(
@@ -9,17 +12,19 @@ def stop_consuming(
     header: str,
     upstream: Middleware,
     downstream: Middleware,
+    delivery_tag: int,
     result: int | str = 0,
 ):
     stopped = int(data[0][0]) + 1
-    print(f"{header} | {stopped}/{REPLICAS}", flush=True)
+    log.hinfo(f"{header} | {stopped}/{REPLICAS}")
     if stopped < REPLICAS:
         upstream.send_message(
             Protocol.serialize_msg(header, [[stopped]]),
         )
     else:
-        print("sending | EOF", flush=True)
+        log.hinfo("sending | EOF")
         downstream.send_message(Protocol.serialize_msg(header, [[result]]))
+    upstream.send_ack(delivery_tag)
     upstream.close_connection()
 
 

@@ -26,7 +26,7 @@ class ProducerSubscriber(MiddlewareType):
         self.channel.exchange_declare(
             exchange=self._exchange_name,
             exchange_type="fanout",
-            auto_delete=True,
+            auto_delete=False,
         )
         self.channel.basic_qos(prefetch_count=1)
 
