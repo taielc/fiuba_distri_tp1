@@ -19,5 +19,7 @@ class Reader:
                 if len(buffer) == self.batch_size:
                     yield buffer
                     buffer = []
+            if buffer:
+                yield buffer
 
         return _iter()
