@@ -38,15 +38,17 @@ def is_running(container: str):
         return False
 
 
-def compose(args: tuple[str]):
+def compose(args: tuple[str], show_output: bool = False):
     command = " ".join(args)
     compose_path = paths.DOCKER / "docker-compose.yaml"
     full_command = f"docker-compose -f {compose_path} {command}"
-    print(f"Running docker-compose:\n> {full_command}")
+    print(f"Running docker-compose {args[0]}")
+    # supress output
     run(
         full_command,
         cwd=paths.ROOT,
         shell=True,
         check=True,
         start_new_session=False,
+        stdout=None if show_output else PIPE,
     )

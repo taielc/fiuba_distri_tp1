@@ -1,3 +1,4 @@
+import sys
 from os import environ
 from subprocess import run, CalledProcessError
 
@@ -6,22 +7,17 @@ from . import paths
 BUILDABLE_PACKAGES = [
     "server",
     "worker",
-]
-
-RUNNABLE_PACKAGES = [
-    *BUILDABLE_PACKAGES,
-    "middleware",
+    "client",
 ]
 
 PACKAGES = [
-    *RUNNABLE_PACKAGES,
+    *BUILDABLE_PACKAGES,
+    "middleware",
     "lib",
 ]
 
 
-def run_on_package(
-    package: str, command: str, envs: dict = {}
-):
+def run_on_package(package: str, command: str, envs: dict = {}):
     wd = paths.TP1 / package
     print(f"{wd}$ {command}")
     environ["PACKAGE"] = package
@@ -38,4 +34,4 @@ def run_on_package(
         )
     except CalledProcessError as e:
         print(e)
-        exit(1)
+        sys.exit(1)

@@ -25,9 +25,7 @@ def tp1():
 
 @tp1.command("build")
 @click.argument(
-    "package",
-    type=click.Choice(BUILDABLE_PACKAGES),
-    required=False,
+    "package", type=click.Choice(BUILDABLE_PACKAGES), required=False
 )
 def build_(package: str):
     packages = BUILDABLE_PACKAGES
@@ -45,19 +43,10 @@ def build_(package: str):
     context_settings=dict(
         allow_extra_args=True,
         ignore_unknown_options=True,
-    ),
+    )
 )
-@click.option(
-    "--exclude",
-    "-e",
-    multiple=True,
-    type=click.Choice(PACKAGES),
-)
-@click.argument(
-    "args",
-    nargs=-1,
-    type=click.UNPROCESSED,
-)
+@click.option("--exclude", "-e", multiple=True, type=click.Choice(PACKAGES))
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def for_each_do(exclude: tuple[str], args: tuple[str]):
     if not args:
         raise click.UsageError("No arguments provided")
@@ -75,11 +64,7 @@ def for_each_do(exclude: tuple[str], args: tuple[str]):
         ignore_unknown_options=True,
     ),
 )
-@click.argument(
-    "args",
-    nargs=-1,
-    type=click.UNPROCESSED,
-)
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def configure(args: tuple[str]):
     worker_counts = [
         (args[i].lstrip("--").replace("-", "_"), int(args[i + 1]))
@@ -100,16 +85,9 @@ def reset_middleware_():
         ignore_unknown_options=True,
     ),
 )
+@click.option("--build", is_flag=True, help="Build docker images")
 @click.option(
-    "--build",
-    is_flag=True,
-    help="Build docker images",
-)
-@click.option(
-    "--restart",
-    is_flag=True,
-    help="Stop and restart services",
-    default=False,
+    "--restart", is_flag=True, help="Stop and restart services", default=False
 )
 @click.option(
     "--no-remove",
@@ -117,12 +95,7 @@ def reset_middleware_():
     help="Don't remove containers after stopping (only if --restart)",
     default=False,
 )
-@click.option(
-    "--reset-middleware",
-    "-r",
-    is_flag=True,
-    help="Reset middleware",
-)
+@click.option("--reset-middleware", "-r", is_flag=True, help="Reset middleware")
 @click.option(
     "--logs",
     "-l",
@@ -130,11 +103,7 @@ def reset_middleware_():
     help="Follow logs after running",
     default=False,
 )
-@click.argument(
-    "args",
-    nargs=-1,
-    type=click.UNPROCESSED,
-)
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def run_tp(
     build: bool,
     restart: bool,
@@ -164,7 +133,7 @@ def run_tp(
         ["up", "-d", "--remove-orphans", "--build" if build else ""] + services
     )
     if logs:
-        docker.compose(("logs", "-f") + tuple(services))
+        docker.compose(("logs", "-f") + tuple(services), show_output=True)
     else:
         print("Check logs with:")
         print(
@@ -173,17 +142,13 @@ def run_tp(
         )
 
 
-@tp1.command()
-def logs():
-    docker.compose(("logs", "-f") + tuple(get_services()))
+@tp1.command("logs")
+def logs_():
+    docker.compose(("logs", "-f") + tuple(get_services()), show_output=True)
 
 
 @tp1.command()
-@click.option(
-    "--rm",
-    is_flag=True,
-    help="Remove containers after stopping",
-)
+@click.option("--rm", is_flag=True, help="Remove containers after stopping")
 def stop(rm: bool):
     stop_services(rm)
 
@@ -207,10 +172,7 @@ def down():
     help="Build docker image, if local: run poetry install",
 )
 @click.option(
-    "--local",
-    "-l",
-    is_flag=True,
-    help="Run locally instead of dockerized",
+    "--local", "-l", is_flag=True, help="Run locally instead of dockerized"
 )
 def client(local: bool, build: bool):
     if local:
@@ -229,12 +191,8 @@ def client(local: bool, build: bool):
         f"--volume {paths.TP1}/client/src/:/tp1/client/src/:rw",
         "tp1-client",
     ]
-    print(" \\\n  ".join(cmd))
-    run(
-        " \\\n  ".join(cmd),
-        check=True,
-        shell=True,
-    )
+    print("$ ", " \\\n  ".join(cmd))
+    run(" \\\n  ".join(cmd), check=True, shell=True)
 
 
 if __name__ == "__main__":
