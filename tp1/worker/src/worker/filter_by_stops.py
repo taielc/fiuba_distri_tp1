@@ -1,14 +1,11 @@
 from config import Queues, Subs, MIN_STOPS_COUNT
-from protocol import Protocol
-from middleware import Middleware, ProducerConsumer, ProducerSubscriber
+from middleware import Middleware, ProducerConsumer, ProducerSubscriber, Message
+from logs import getLogger
 
 from ._utils import stop_consuming
 from ._config import REPLICAS
-from logs import getLogger
 
 log = getLogger(__name__)
-
-WORKER_TYPE = "filter_by_stops"
 
 
 def main():
@@ -29,7 +26,7 @@ def main():
             log.error("no-message")
             upstream.send_nack(delivery_tag)
             return
-        header, data = Protocol.deserialize_msg(msg)
+        header, data = Message.deserialize_msg(msg)
 
         if header == "EOF":
             stop_consuming(
@@ -42,13 +39,11 @@ def main():
             )
 
             stopped = int(data[0][0]) + 1
-            log.hinfo(
-                f"{header} | {stopped}/{REPLICAS}"
-            )
+            log.hinfo(f"{header} | {stopped}/{REPLICAS}")
             if stopped == REPLICAS:
                 log.hinfo(f"sending | EOF")
                 downstream.send_message(
-                    Protocol.serialize_msg(header, [["0"], [REPLICAS]])
+                    Message.serialize_msg(header, [["0"], [REPLICAS]])
                 )
 
             return
@@ -76,8 +71,8 @@ def main():
             for row in filtered
         ]
 
-        downstream.send_message(Protocol.serialize_msg(header, filtered_q3))
-        results.send_message(Protocol.serialize_msg("query1", filtered_q1))
+        downstream.send_message(Message.serialize_msg(header, filtered_q3))
+        results.send_message(Message.serialize_msg("query1", filtered_q1))
         upstream.send_ack(delivery_tag)
 
     log.hinfo("READY")

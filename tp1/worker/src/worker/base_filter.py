@@ -1,10 +1,10 @@
 import re
-from middleware import Middleware, Publisher, ProducerConsumer
-from protocol import Protocol
+
+from middleware import Middleware, Publisher, ProducerConsumer, Message
 from config import Queues, Subs
+from logs import getLogger
 
 from ._utils import stop_consuming
-from logs import getLogger
 
 log = getLogger(__name__)
 
@@ -33,7 +33,7 @@ def filter_itinerary(data):
         match = patron.match(duration)
 
         if match is None:
-            log.error("parsing error | duration |", duration)
+            log.error(f"parsing error | duration | {duration}")
             return -1
 
         days = int(match.group(1) or 0)
@@ -70,7 +70,7 @@ def main():
             upstream.send_nack(delivery_tag)
             return
 
-        header, data = Protocol.deserialize_msg(msg)
+        header, data = Message.deserialize_msg(msg)
 
         if header == "EOF":
             stop_consuming(
@@ -88,11 +88,11 @@ def main():
         )
         data = filter_itinerary(data)
 
-        downstream.send_message(Protocol.serialize_msg(header, data))
+        downstream.send_message(Message.serialize_msg(header, data))
         upstream.send_ack(delivery_tag)
 
     log.hinfo("READY")
     upstream.get_message(consume)
 
-    for stat, value in stats.items():
-        log.hinfo(f"{stat} | {value}")
+    log.hdebug(f"invalids | {len(stats['invalids'])}")
+    log.hinfo(f"processed | {stats['processed']}")

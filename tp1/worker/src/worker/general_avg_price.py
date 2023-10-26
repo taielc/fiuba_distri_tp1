@@ -1,9 +1,8 @@
-from middleware import Middleware, ProducerSubscriber, Publisher
+from middleware import Middleware, ProducerSubscriber, Publisher, Message
 from config import Queues, Subs
-from protocol import Protocol
+from logs import getLogger
 
 from ._config import REPLICAS
-from logs import getLogger
 
 log = getLogger(__name__)
 
@@ -33,7 +32,7 @@ def main():
             upstream.send_nack(delivery_tag)
             return
 
-        header, data = Protocol.deserialize_msg(msg)
+        header, data = Message.deserialize_msg(msg)
 
         if header == "EOF":
             log.hinfo("flights | EOF")
@@ -46,17 +45,19 @@ def main():
                     int(data[1][0]) + stats["sum_price"],
                     int(data[1][1]) + stats["processed"],
                 ]
+            sum_prices = results[0]
+            processed = results[1] or 1
             if stopped < REPLICAS:
-                log.hinfo(f"partial | {results[0] / results[1]}")
+                log.hinfo(f"partial | {sum_prices / processed}")
                 upstream.send_message(
-                    Protocol.serialize_msg(header, [[stopped], results]),
+                    Message.serialize_msg(header, [[stopped], results]),
                 )
             else:
-                log.hinfo(f"final | {results[0] / results[1]}")
+                log.hinfo(f"final | {sum_prices / processed}")
                 log.hinfo("sending | EOF")
                 downstream = Middleware(Publisher(Subs.AVG_PRICE))
                 downstream.send_message(
-                    Protocol.serialize_msg(header, [[0], results])
+                    Message.serialize_msg(header, [[0], results])
                 )
                 downstream.close_connection()
             upstream.send_ack(delivery_tag)

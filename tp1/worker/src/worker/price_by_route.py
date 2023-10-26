@@ -1,13 +1,9 @@
 from collections import defaultdict
 from config import Queues
-from protocol import Protocol
-from middleware import Middleware, ProducerConsumer
+from middleware import Middleware, ProducerConsumer, Message
 from logs import getLogger
 
 log = getLogger(__name__)
-
-
-WORKER_TYPE = "price_by_route"
 
 
 def main():
@@ -25,7 +21,7 @@ def main():
             log.error("no-message")
             upstream.send_nack(delivery_tag)
             return
-        header, data = Protocol.deserialize_msg(msg)
+        header, data = Message.deserialize_msg(msg)
 
         if header == "EOF":
             upstream.send_ack(delivery_tag)
@@ -55,8 +51,8 @@ def main():
         avg = round(route_stats["sum"] / route_stats["count"] / 100, 2)
         max_ = f"{route_stats['max'] // 100}.{route_stats['max'] % 100}"
         final.append([route[0], route[1], avg, max_])
-    results.send_message(Protocol.serialize_msg("query4", final))
-    results.send_message(Protocol.serialize_msg("EOF", [["query4"]]))
+    results.send_message(Message.serialize_msg("query4", final))
+    results.send_message(Message.serialize_msg("EOF", [["query4"]]))
     results.close_connection()
 
     for stat, value in stats.items():

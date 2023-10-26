@@ -1,10 +1,9 @@
 from utils import distance
-from middleware import Middleware, ProducerConsumer, ProducerSubscriber
+from middleware import Middleware, ProducerConsumer, ProducerSubscriber, Message
 from config import DISTANCE_MULTIPLIER, Queues, Subs
-from protocol import Protocol
+from logs import getLogger
 
 from ._utils import stop_consuming
-from logs import getLogger
 
 log = getLogger(__name__)
 
@@ -35,7 +34,7 @@ def main():
             airports.send_nack(delivery_tag)
             return
 
-        header, data = Protocol.deserialize_msg(msg)
+        header, data = Message.deserialize_msg(msg)
         # [0] Airport Code;
         # [5] Latitude;
         # [6] Longitude;
@@ -70,7 +69,7 @@ def main():
             flights.send_nack(delivery_tag)
             return
 
-        header, data = Protocol.deserialize_msg(msg)
+        header, data = Message.deserialize_msg(msg)
 
         if header == "EOF":
             stop_consuming(
@@ -105,11 +104,11 @@ def main():
 
         if final:
             results.send_message(
-                Protocol.serialize_msg("query2", final),
+                Message.serialize_msg("query2", final),
             )
         flights.send_ack(delivery_tag)
 
     flights.get_message(consume_flights)
 
     for stat, value in stats.items():
-        log.hinfo(f"{stat} | {value}")
+        log.hdebug(f"{stat} | {value}")

@@ -1,8 +1,7 @@
 from collections import defaultdict
 
-from middleware import Middleware, ProducerConsumer, ProducerSubscriber
+from middleware import Middleware, ProducerConsumer, ProducerSubscriber, Message
 from config import Queues, Subs, BATCH_SIZE
-from protocol import Protocol
 
 from ._utils import stop_consuming
 from logs import getLogger
@@ -18,7 +17,6 @@ def parse_coordinates(lat: str, lon: str):
 
 AIRPORTS_ROW_SIZE = 11
 WORKER_NAME = "filter_by_price"
-
 
 def main():
     flights = Middleware(
@@ -41,7 +39,7 @@ def main():
             return
         avg_price.send_ack(delivery_tag)
 
-        header, (_, results) = Protocol.deserialize_msg(msg)
+        header, (_, results) = Message.deserialize_msg(msg)
         assert header == "EOF"
 
         stats["sum_price"] = int(results[0])
@@ -51,7 +49,7 @@ def main():
 
     def send_downstream():
         # is in x100
-        avg_price_value = stats["sum_price"] / stats["rows_count"]
+        avg_price_value = stats["sum_price"] / (stats["rows_count"] or 1)
         log.hinfo(f"avg_price_value | {avg_price_value}")
 
         final = []
@@ -75,11 +73,11 @@ def main():
             )
             if len(final) == BATCH_SIZE:
                 stats["total"] += len(final)
-                downstream.send_message(Protocol.serialize_msg("routes", final))
+                downstream.send_message(Message.serialize_msg("routes", final))
                 final = []
         if final:
             stats["total"] += len(final)
-            downstream.send_message(Protocol.serialize_msg("routes", final))
+            downstream.send_message(Message.serialize_msg("routes", final))
 
         log.hinfo(f"processed | {stats['processed']}")
         log.hinfo(f"total | {stats['total']}")
@@ -89,7 +87,7 @@ def main():
             flights.send_nack(delivery_tag)
             return
 
-        header, data = Protocol.deserialize_msg(msg)
+        header, data = Message.deserialize_msg(msg)
 
         if header == "EOF":
             log.hinfo("airports | EOF")
