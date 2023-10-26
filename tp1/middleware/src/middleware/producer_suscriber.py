@@ -1,8 +1,12 @@
 import pika
 
-from config import MIDDLEWARE_HOST
+from config import MIDDLEWARE_HOST, MIDDLEWARE_HEARTBEAT
+from logs import getLogger
 
 from .middleware_type import MiddlewareType
+
+
+log = getLogger(__name__)
 
 
 class ProducerSubscriber(MiddlewareType):
@@ -16,6 +20,7 @@ class ProducerSubscriber(MiddlewareType):
             pika.ConnectionParameters(
                 host=MIDDLEWARE_HOST,
                 credentials=pika.PlainCredentials("admin", "admin"),
+                heartbeat=MIDDLEWARE_HEARTBEAT,
             )
         )
         self.channel = self.connection.channel()
@@ -42,6 +47,33 @@ class ProducerSubscriber(MiddlewareType):
             exchange=self._exchange_name, queue=self._queue_name
         )
 
+    def _reconnect(self):
+        # self.close_connection()
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host=MIDDLEWARE_HOST,
+                credentials=pika.PlainCredentials("admin", "admin"),
+            )
+        )
+        self.channel = self.connection.channel()
+        self.channel.basic_qos(prefetch_count=1)
+        self.channel.queue_declare(
+            queue=self._queue_name,
+            auto_delete=self._exclusive,
+            exclusive=self._exclusive,
+        )
+
+        self.channel.queue_bind(
+            exchange=self._exchange_name, queue=self._queue_name
+        )
+
+        def callback(channel, method, properties, body):
+            self.handle_message(body, method.delivery_tag)
+
+        self.channel.basic_consume(
+            queue=self._queue_name, on_message_callback=callback
+        )
+
     def send_message(self, message: str):
         self.channel.basic_publish(
             exchange="", routing_key=self._queue_name, body=message
@@ -57,7 +89,13 @@ class ProducerSubscriber(MiddlewareType):
             queue=self._queue_name, on_message_callback=callback
         )
 
+        # while not self.connection.is_closed:
+        #     try:
         self.channel.start_consuming()
+            # except pika.exceptions.StreamLostError:
+            #     log.warning("Stream lost, reconnecting...")
+            #     self.send_nack()
+            #     self._reconnect()
 
     def send_ack(self, delivery_tag):
         self.channel.basic_ack(delivery_tag=delivery_tag)
