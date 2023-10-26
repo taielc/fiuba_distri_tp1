@@ -1,4 +1,5 @@
 import logging
+from config import LOGGING_LEVEL
 
 HINFO_LEVEL_NUM = 25
 HDEBUG_LEVEL_NUM = 23
@@ -9,7 +10,7 @@ def initialize_logger(logging_level):
     Python custom logging initialization
     """
     logging.basicConfig(
-        format="%(asctime)s | %(levelname)-8s | %(message)s",
+        format="%(asctime)s | %(levelname)-4s | %(message)s",
         level=logging_level,
         datefmt="%H:%M:%S",
     )
@@ -51,5 +52,14 @@ def getLogger(name: str) -> CustomLogger:
     logger.hdebug = hdebug  # type: ignore
     return logger  # type: ignore
 
+_logging_level = {
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "HINFO": HINFO_LEVEL_NUM,
+    "HDEBUG": HDEBUG_LEVEL_NUM,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "WARN": logging.WARN,
+}.get(LOGGING_LEVEL, HINFO_LEVEL_NUM)
 
-initialize_logger(HDEBUG_LEVEL_NUM)
+initialize_logger(_logging_level)

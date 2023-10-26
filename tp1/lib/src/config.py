@@ -3,6 +3,7 @@ from os import getenv
 
 
 DATASET_SIZE = 10_000_000
+LOGGING_LEVEL = getenv("LOGGING_LEVEL", "HINFO")
 
 SERVER_HOST = getenv("SERVER_HOST", "server")
 SERVER_PORT = 9000
