@@ -51,6 +51,7 @@ services:
 
   fastest_by_route:
     image: tp1-worker
+    container_name: fastest_by_route
     command: fastest_by_route
     build:
       context: ..
@@ -67,6 +68,7 @@ services:
 
   price_by_route:
     image: tp1-worker
+    container_name: price_by_route
     command: price_by_route
     build:
       context: ..

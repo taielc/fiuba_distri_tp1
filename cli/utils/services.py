@@ -1,6 +1,7 @@
 from .template_parser import render_template
 from . import paths
 from . import docker
+from . import SINGLE_WORKERS
 
 SERVICES_PATH = paths.ROOT / "cli/tmp/running_services.csv"
 
@@ -18,7 +19,7 @@ def get_services() -> list[tuple[str, int]]:
                 lambda s: s.split(","), f.read().splitlines()
             )
             for i in range(1, int(count) + 1)
-        ] + ["server", "fastest_by_route", "price_by_route"]
+        ] + ["server"] + SINGLE_WORKERS
 
 
 def configure_docker_compose(worker_counts: list[tuple[str, int]] = None):
@@ -36,8 +37,8 @@ def configure_docker_compose(worker_counts: list[tuple[str, int]] = None):
     _save_workers(worker_counts)
 
 
-def stop_services(rm: bool):
-    services = get_services()
+def stop_services(rm: bool, middleware: bool = False):
+    services = get_services() + (["middleware"] if middleware else [])
     docker.compose(("stop",) + tuple(services))
     print("Stopped services")
     if rm:

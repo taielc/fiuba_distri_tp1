@@ -1,5 +1,5 @@
 import sys
-from os import environ
+from os import environ, getcwd
 from subprocess import run, CalledProcessError
 
 from . import paths
@@ -18,8 +18,9 @@ PACKAGES = [
 
 
 def run_on_package(package: str, command: str, envs: dict = {}):
+    cwd = getcwd()
     wd = paths.TP1 / package
-    print(f"{wd}$ {command}")
+    print(f"{wd.relative_to(cwd)}$ {command}")
     environ["PACKAGE"] = package
     environ.update(envs)
     current_env = environ.copy()

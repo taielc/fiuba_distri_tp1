@@ -1,7 +1,8 @@
 """Main scripts"""
 
+from os import getcwd
 from subprocess import run
-from time import sleep
+from datetime import datetime
 import click
 
 
@@ -9,6 +10,8 @@ from .utils import (
     docker,
     BUILDABLE_PACKAGES,
     PACKAGES,
+    NON_SINGLE_WORKERS,
+    SINGLE_WORKERS,
     paths,
     run_on_package,
     configure_docker_compose,
@@ -19,11 +22,11 @@ from .utils import (
 
 
 @click.group()
-def tp1():
+def tp():
     pass
 
 
-@tp1.command("build")
+@tp.command("build")
 @click.argument(
     "package", type=click.Choice(BUILDABLE_PACKAGES), required=False
 )
@@ -33,13 +36,10 @@ def build_(package: str):
         packages = [package]
     print(f"Creating image for {package}")
     for package in packages:
-        run_on_package(
-            package,
-            docker.build_cmd(package),
-        )
+        docker.build(package),
 
 
-@tp1.command(
+@tp.command(
     context_settings=dict(
         allow_extra_args=True,
         ignore_unknown_options=True,
@@ -57,34 +57,50 @@ def for_each_do(exclude: tuple[str], args: tuple[str]):
         run_on_package(package, command)
 
 
-@tp1.command(
+def _configure_cmd(**kwargs):
+    worker_counts = [
+        (worker, count)
+        for worker, count in kwargs.items()
+        if worker in NON_SINGLE_WORKERS
+    ]
+    configure_docker_compose(worker_counts)
+
+
+def _validate_greater_than_zero(ctx, param, value):
+    if value <= 0:
+        raise click.BadParameter("Must be greater than 0")
+    return value
+
+
+_configure = _configure_cmd
+for worker, default in NON_SINGLE_WORKERS.items():
+    _configure = click.option(
+        f"--{worker.replace('_', '-')}",
+        type=int,
+        callback=_validate_greater_than_zero,
+        default=default,
+        show_default=True,
+    )(_configure)
+
+configure = tp.command(
     "configure",
     context_settings=dict(
         allow_extra_args=True,
         ignore_unknown_options=True,
     ),
-)
-@click.argument("args", nargs=-1, type=click.UNPROCESSED)
-def configure(args: tuple[str]):
-    worker_counts = [
-        (args[i].lstrip("--").replace("-", "_"), int(args[i + 1]))
-        for i in range(0, len(args), 2)
-    ]
-    configure_docker_compose(worker_counts)
+    help=(
+        "Configure number of replicas for each worker"
+        "\n\tNote: " + ", ".join(SINGLE_WORKERS) + " cannot be replicated"
+    ),
+)(_configure)
 
 
-@tp1.command("reset-middleware")
+@tp.command("reset-middleware")
 def reset_middleware_():
     middleware.reset()
 
 
-@tp1.command(
-    "run",
-    context_settings=dict(
-        allow_extra_args=True,
-        ignore_unknown_options=True,
-    ),
-)
+@tp.command("run")
 @click.option("--build", is_flag=True, help="Build docker images")
 @click.option(
     "--restart", is_flag=True, help="Stop and restart services", default=False
@@ -97,44 +113,43 @@ def reset_middleware_():
 )
 @click.option("--reset-middleware", "-r", is_flag=True, help="Reset middleware")
 @click.option(
-    "--logs",
-    "-l",
+    "--detach",
+    "-d",
     is_flag=True,
-    help="Follow logs after running",
+    help="Detach after running",
     default=False,
 )
-@click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def run_tp(
     build: bool,
     restart: bool,
     no_remove: bool,
     reset_middleware: bool,
-    logs: bool,
-    args: tuple[str],
+    detach: bool,
 ):
-    """
-    tp1 run --worker-a 2 --worker-b 2
-    """
-    if args:
-        worker_counts = [
-            (args[i].lstrip("--").replace("-", "_"), int(args[i + 1]))
-            for i in range(0, len(args), 2)
-        ]
-        configure_docker_compose(worker_counts)
+    print("Checking if middleware is running:")
     if not docker.is_running("middleware"):
+        reset_middleware = False
+        print("Middleware is not running, starting:")
         docker.compose(("up", "-d", "middleware"))
-        sleep(5)
+        middleware.wait_until_running()
     if restart:
+        print("Restart set, stopping services:")
         stop_services((not no_remove))
     if reset_middleware:
+        print("Resetting middleware:")
         middleware.reset()
     services = get_services()
     docker.compose(
-        ["up", "-d", "--remove-orphans", "--build" if build else ""] + services
+        [
+            "up",
+            "-d" if detach else "",
+            "--remove-orphans",
+            "--build" if build else "",
+        ]
+        + services,
+        show_output=not detach,
     )
-    if logs:
-        docker.compose(("logs", "-f") + tuple(services), show_output=True)
-    else:
+    if detach:
         print("Check logs with:")
         print(
             "docker compose -f docker/docker-compose.yaml logs -f "
@@ -142,18 +157,34 @@ def run_tp(
         )
 
 
-@tp1.command("logs")
-def logs_():
-    docker.compose(("logs", "-f") + tuple(get_services()), show_output=True)
+@tp.command(
+    "logs",
+    context_settings=dict(
+        allow_extra_args=True,
+        ignore_unknown_options=True,
+    ),
+)
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def logs_(args: tuple[str]):
+    services = get_services()
+    if any(arg in services for arg in args):
+        services = []
+    docker.compose(
+        ("logs",) + args + tuple(services),
+        show_output=True,
+    )
 
 
-@tp1.command()
+@tp.command()
 @click.option("--rm", is_flag=True, help="Remove containers after stopping")
-def stop(rm: bool):
-    stop_services(rm)
+@click.option("-m", is_flag=True, help="Stop middleware", default=False)
+def stop(rm: bool, m: bool):
+    if m:
+        middleware.stop()
+    stop_services(rm, middleware=m)
 
 
-@tp1.command()
+@tp.command()
 def down():
     run(
         "docker exec -it middleware bash -c 'rabbitmqctl stop_app'",
@@ -165,7 +196,7 @@ def down():
     docker.compose(("down", "-v", "--remove-orphans"))
 
 
-@tp1.command()
+@tp.command()
 @click.option(
     "--build",
     is_flag=True,
@@ -183,12 +214,13 @@ def client(local: bool, build: bool):
         )
         return
     if build:
-        run_on_package("client", docker.build_cmd("client"))
+        docker.build("client")
+    cwd = getcwd()
     cmd = [
         "docker run -it --rm --network=docker_default",
-        f"--volume {paths.ROOT}/.data:/.data:rw",
-        f"--volume {paths.TP1}/lib/src/:/tp1/lib/src/:rw",
-        f"--volume {paths.TP1}/client/src/:/tp1/client/src/:rw",
+        f"--volume ./{paths.ROOT.relative_to(cwd)}/.data:/.data:rw",
+        f"--volume ./{paths.TP1.relative_to(cwd)}/lib/src/:/tp1/lib/src/:rw",
+        f"--volume ./{paths.TP1.relative_to(cwd)}/client/src/:/tp1/client/src/:rw",
         "tp1-client",
     ]
     print("$ ", " \\\n  ".join(cmd))
@@ -196,4 +228,4 @@ def client(local: bool, build: bool):
 
 
 if __name__ == "__main__":
-    tp1()
+    tp()
