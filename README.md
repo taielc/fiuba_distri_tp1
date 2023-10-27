@@ -16,7 +16,9 @@ Indice:
   - [Introducción](#introducción)
   - [Desarrollo](#desarrollo)
   - [DAG de la solución](#dag-de-la-solución)
+  - [Cómo correr el proyecto](#cómo-correr-el-proyecto)
   - [Vistas](#vistas)
+    - [Escenarios](#escenarios)
     - [Física](#física)
       - [Despliegue](#despliegue)
       - [Robustez](#robustez)
@@ -25,6 +27,7 @@ Indice:
       - [Secuencia](#secuencia)
     - [Desarrollo](#desarrollo)
       - [Paquetes](#paquetes)
+  - [Video Demostración](#video-demostración)
 
 # Documentación técnica
 
@@ -34,7 +37,7 @@ En este proyecto se busca crear un sistema distribuido que analice 6 meses de re
 
 Los registros poseen trayectos (aeropuertos origen-destino), tarifa total,  distancia total, duración, cada segmento con escalas y aerolíneas.
 
-Utilizando una arquitectura cliente-servidor, los registros se deben leer en el cliente, recibir en el servidor y procesar en diversos workers de manera que los mismos se puedan replicar y el sistema sea escalable.
+Utilizando una arquitectura cliente-servidor, los registros se deben leer en el cliente, recibir en el servidor y procesar en diversos workers de manera que los mismos se puedan replicar y el sistema sea escalable. Además, se deben utilizar los middleware correspondientes para minimizar la pérdida de datos.
 
 Se busca procesar las siguientes queries:
 
@@ -48,11 +51,11 @@ media general de precios.
 
 ## Desarrollo
 
-El proyecto posee un cliente, un servidor y ocho workers con capacidad de replicación, además de siete middlewares, tres de los cuales son de la forma Producer-Subscriber (PS) y el resto Producer-Consumer (PC). 
+El proyecto posee un cliente, un servidor y ocho workers con capacidad de replicación. Estos se comunican a través de un Middleware, que puede utilizarse para el envío de mensajes con colas de la forma Producer-Subscriber (PS) o Producer-Consumer (PC).
 
-Para la creación de los middlewares se utilizó el software RabbitMQ, creando Exchanges para los de tipo PS y working queues para los de tipo PC. 
+Se utilizó el software RabbitMQ, creando Exchanges para los de tipo PS y Working Queues para los de tipo PC.
 
-Para la comunicación entre cliente y servidor se utilizaron sockets a través del protocolo TCP, con un protocolo de mensajería que consiste en los registros separados por "\n" con cada valor dentro del registro separado por ";". Estos registros se envían de a batches, con un header y un body que consiste en el tamaño de cada batch seguido de los registros. El header es un string que denota el tipo de datos que se están enviando y cuando se terminan de enviar todos los datos se envía un "EOF" con un body de valor cero. 
+Además se implementó un cliente de ejemplo que se conecta al sistema a través del protocolo TCP, con un protocolo de mensajería que consiste en los registros separados por "\n" con cada valor dentro del registro separado por ";". Estos registros se envían de a batches, con un header y un body que consiste en el tamaño de cada batch seguido de los registros. El header es un string que denota el tipo de datos que se están enviando y cuando se terminan de enviar todos los datos se envía un "EOF" con un body de valor cero.
 
 Los batches luego pasan por los middlewares y se van repartiendo a los workers para completar las queries necesarias. Cuando se van obteniendo resultados se los agrega a un middleware de resultados, que va devolviendo los mismos al servidor y a su vez este los manda al cliente.
 
@@ -64,7 +67,43 @@ Así, el servidor cuenta los EOF que recibe con un body que tiene el nombre de u
 
 ![](docs/diagramas/DAG.png)
 
-En este gŕafico se puede observar en forma de grafo el "camino" de los datos desde que se reciben en el servidor hasta que llegan a los resultados, luego de su correspondiente procesamiento. Cada nodo representa un worker, que procesa los datos recibidos y envía al siguiente worker los datos procesados. Finalmente, esos resultados convergen en un sink. 
+En este gŕafico se puede observar en forma de grafo el "camino" de los datos desde que se reciben en el servidor hasta que llegan a los resultados, luego de su correspondiente procesamiento. Cada nodo representa un worker, que procesa los datos recibidos y envía al siguiente worker los datos procesados. Finalmente, esos resultados convergen en un sink.
+
+
+## Cómo correr el proyecto
+
+- Instalación del paquete `tp`:
+``` 
+ pip install -e .
+```
+
+- Testear la instalación con:
+
+```
+tp --help
+```   
+
+- Configuración del sistema (valores por defecto en [workers](cli/utils/workers.py)):
+
+```
+tp configure
+```
+(Se puede verificar qué configuración aplicar con `tp configure --help`)
+
+- Ejecución del sistema
+
+```
+tp run --build
+```
+    
+(Se puede verificar qué imagen construir con `tp build --help`)
+
+### Cliente
+
+- Ejecución del cliente:
+```
+tp client --build
+```
 
 ## Vistas
 
@@ -78,24 +117,22 @@ En este gŕafico se puede observar en forma de grafo el "camino" de los datos de
   - Flujo Básico:
     1) El cliente se conecta al servidor.
     2) El cliente envía los datos de aeropuertos e itinerarios al sistema.
-- Consultar vuelos con muchas escalas
+- Consultar vuelos con muchas escalas _(Query 1)_
   Permite al cliente obtener información de los vuelos que tienen 3 o más escalas.
   - Precondiciones: Se realizó la carga de datos al sistema.
-  - Flujo Básico:
-    1) El cliente realiza la consulta.
-  - Postcondiciones: 
-- Consultar vuelos con distancia recorrida mayor a origen-destino
+  - Postcondiciones: _no hay_.
+- Consultar vuelos con distancia recorrida mayor a origen-destino _(Query 2)_
   Permite al cliente obtener información de los vuelos que tienen distancia recorrida 4 veces mayor o más a la distancia origen-destino.
   - Precondiciones: Se realizó la carga de datos al sistema.
-  - Postcondiciones:
-- Consultar vuelos más rápidos por tramo
+  - Postcondiciones: _no hay_.
+- Consultar vuelos más rápidos por tramo _(Query 3)_
   Permite al cliente obtener los 2 vuelos más rápidos (con menor tiempo) por cada tramo para aquellos vuelos con 3 o más escalas.
   - Precondiciones: Se realizó la carga de datos al sistema.
-  - Postcondiciones:
-- Consultar métricas de precios por trayecto
+  - Postcondiciones: _no hay_.
+- Consultar métricas de precios por trayecto _(Query 4)_
   Obtener, para los vuelos con precio mayor a la media, el valor medio y máximo de precio por cada trayecto.
   - Precondiciones: Se realizó la carga de datos al sistema.
-  - Postcondiciones: 
+  - Postcondiciones: _no hay_.
 
 ### Física
 
@@ -111,6 +148,8 @@ En este diagrama de despliegue se puede observar que se posee una instancia del 
 
 ![](docs/diagramas/robustez.png)
 
+En el diagrama de robustez se muestra la arquitectura del sistema, con instancias de servidor y workers, así como qué tipo de interfaz de middleware se está usando (PS o PC). Hay workers que están duplicados, lo que implica que se pueden instanciar réplicas de los mismos y hay dos workers que no se pueden replicar (_fastest_by_route_ y _price_by_route_). Se puede observar que este diagrama es prácticamente análogo al DAG, lo que tiene sentido ya que el sistema procesa datos de manera distribuída.
+
 ### Procesos
 
 _[Volver al Indice](#indice)_
@@ -118,6 +157,8 @@ _[Volver al Indice](#indice)_
 #### Actividad
 
 ![](docs/diagramas/actividad.png)
+
+En este diagrama se muestra cómo los distintos nodos se comunican entre sí para completar la Query 4 (Obtener media y máximo de precio por tramo para los vuelos con precio mayor a la media general). El flujo de los datos pasa por un filtro general para luego dividirse en: un worker que calcula la media general y otro que sólo acumula precios agrupados por tramo (para luego ser filtrados por la media general). Finalmente el segundo de estos envía los valores filtrados a un último nodo que realiza la agregación final para luego enviar los resultados al servidor.
 
 #### Secuencia
 
@@ -133,3 +174,10 @@ _[Volver al Indice](#indice)_
 
 ![](docs/diagramas/paquetes.png)
 
+El diagrama de paquetes muestra la distribución del código. Se tiene un paquete server, al cual se accede por un main. Lo mismo sucede para el módulo de cada worker, que se crea con un _dynamic import_ que sirve para determinar por configuración qué worker se estará ejecutando. Además, se tiene un paquete 'lib' que publica otros módulos (`tcp`, `serde`, `config`, `logs`) con clases y funciones compartidas en todos los otros paquetes, y define configuraciones y protocolos de envío de mensajes. Finalmente, el módulo Middleware posee una clase abstracta `MiddlewareType`, lo que permite implementar el patrón de diseño Strategy para poder abstraerse del tipo de Middleware que se desea usar (Producer-Subscriber, Producer-Consumer o Publisher). Todos utilizan la librería externa Pika para conectarse con RabbitMQ.
+
+
+
+## Video demostración
+
+Video demostración del programa corriendo con todos los datos: https://www.youtube.com/watch?v=ygr7mpo0nO4&ab
