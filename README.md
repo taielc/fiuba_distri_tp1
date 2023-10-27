@@ -34,7 +34,7 @@ En este proyecto se busca crear un sistema distribuido que analice 6 meses de re
 
 Los registros poseen trayectos (aeropuertos origen-destino), tarifa total,  distancia total, duración, cada segmento con escalas y aerolíneas.
 
-Utilizando una arquitectura cliente-servidor, los registros se deben leer en el cliente, recibir en el servidor y procesar en diversos workers de manera que los mismos se puedan replicar y el sistema sea escalable. Además, se deben utilizar los middleware correspondientes para minimizar la pérdida de datos.
+Utilizando una arquitectura cliente-servidor, los registros se deben leer en el cliente, recibir en el servidor y procesar en diversos workers de manera que los mismos se puedan replicar y el sistema sea escalable.
 
 Se busca procesar las siguientes queries:
 
@@ -64,7 +64,38 @@ Así, el servidor cuenta los EOF que recibe con un body que tiene el nombre de u
 
 ![](docs/diagramas/DAG.png)
 
+En este gŕafico se puede observar en forma de grafo el "camino" de los datos desde que se reciben en el servidor hasta que llegan a los resultados, luego de su correspondiente procesamiento. Cada nodo representa un worker, que procesa los datos recibidos y envía al siguiente worker los datos procesados. Finalmente, esos resultados convergen en un sink. 
+
 ## Vistas
+
+### Escenarios
+
+![](docs/diagramas/casos_de_uso.png)
+
+- Cargar Datos al Sistema:
+  Permite al cliente cargar los datos al sistema para realizar consultas.
+  - Precondiciones: _no hay_.
+  - Flujo Básico:
+    1) El cliente se conecta al servidor.
+    2) El cliente envía los datos de aeropuertos e itinerarios al sistema.
+- Consultar vuelos con muchas escalas
+  Permite al cliente obtener información de los vuelos que tienen 3 o más escalas.
+  - Precondiciones: Se realizó la carga de datos al sistema.
+  - Flujo Básico:
+    1) El cliente realiza la consulta.
+  - Postcondiciones: 
+- Consultar vuelos con distancia recorrida mayor a origen-destino
+  Permite al cliente obtener información de los vuelos que tienen distancia recorrida 4 veces mayor o más a la distancia origen-destino.
+  - Precondiciones: Se realizó la carga de datos al sistema.
+  - Postcondiciones:
+- Consultar vuelos más rápidos por tramo
+  Permite al cliente obtener los 2 vuelos más rápidos (con menor tiempo) por cada tramo para aquellos vuelos con 3 o más escalas.
+  - Precondiciones: Se realizó la carga de datos al sistema.
+  - Postcondiciones:
+- Consultar métricas de precios por trayecto
+  Obtener, para los vuelos con precio mayor a la media, el valor medio y máximo de precio por cada trayecto.
+  - Precondiciones: Se realizó la carga de datos al sistema.
+  - Postcondiciones: 
 
 ### Física
 
@@ -73,6 +104,8 @@ _[Volver al Indice](#indice)_
 #### Despliegue
 
 ![](docs/diagramas/despliegue.png)
+
+En este diagrama de despliegue se puede observar que se posee una instancia del Server, una del Middleware y múltiples workers. Tanto para el Server como para los workers se utiliza Docker y Python, y para el Middleware Docker y RabbitMQ.
 
 #### Robustez
 
