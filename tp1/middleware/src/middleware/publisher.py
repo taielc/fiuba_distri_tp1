@@ -1,15 +1,17 @@
 import pika
 
+from config import MIDDLEWARE_HOST, MIDDLEWARE_HEARTBEAT
+
 from .middleware_type import MiddlewareType
-from .constants import RABBITMQ_HOST
 
 
 class Publisher(MiddlewareType):
     def __init__(self, exchange_name: str):
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
-                host="middleware",
+                host=MIDDLEWARE_HOST,
                 credentials=pika.PlainCredentials("admin", "admin"),
+                heartbeat=MIDDLEWARE_HEARTBEAT,
             )
         )
         self.channel = self.connection.channel()

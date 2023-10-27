@@ -1,57 +1,9 @@
 version: '3'
 
 
-x-base_filter: &base_filter
+x-filter_by_price: &filter_by_price
   image: tp1-worker
-  command: base_filter
-  build:
-    context: ..
-    dockerfile: docker/Dockerfile
-    args:
-      - include=middleware
-      - package=worker
-  volumes:
-    - ../tp1/lib/src:/tp1/lib/src
-    - ../tp1/middleware/src:/tp1/middleware/src
-    - ../tp1/worker/src:/tp1/worker/src
-  environment:
-    - REPLICAS=4
-
-x-filter_by_stops: &filter_by_stops
-  image: tp1-worker
-  command: filter_by_stops
-  build:
-    context: ..
-    dockerfile: docker/Dockerfile
-    args:
-      - include=middleware
-      - package=worker
-  volumes:
-    - ../tp1/lib/src:/tp1/lib/src
-    - ../tp1/middleware/src:/tp1/middleware/src
-    - ../tp1/worker/src:/tp1/worker/src
-  environment:
-    - REPLICAS=2
-
-x-dist_calculator: &dist_calculator
-  image: tp1-worker
-  command: dist_calculator
-  build:
-    context: ..
-    dockerfile: docker/Dockerfile
-    args:
-      - include=middleware
-      - package=worker
-  volumes:
-    - ../tp1/lib/src:/tp1/lib/src
-    - ../tp1/middleware/src:/tp1/middleware/src
-    - ../tp1/worker/src:/tp1/worker/src
-  environment:
-    - REPLICAS=2
-
-x-aggregate_by_route: &aggregate_by_route
-  image: tp1-worker
-  command: aggregate_by_route
+  command: filter_by_price
   build:
     context: ..
     dockerfile: docker/Dockerfile
@@ -81,9 +33,9 @@ x-general_avg_price: &general_avg_price
   environment:
     - REPLICAS=2
 
-x-filter_by_price: &filter_by_price
+x-aggregate_by_route: &aggregate_by_route
   image: tp1-worker
-  command: filter_by_price
+  command: aggregate_by_route
   build:
     context: ..
     dockerfile: docker/Dockerfile
@@ -96,6 +48,54 @@ x-filter_by_price: &filter_by_price
     - ../tp1/worker/src:/tp1/worker/src
   environment:
     - REPLICAS=2
+
+x-dist_calculator: &dist_calculator
+  image: tp1-worker
+  command: dist_calculator
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=2
+
+x-filter_by_stops: &filter_by_stops
+  image: tp1-worker
+  command: filter_by_stops
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=2
+
+x-base_filter: &base_filter
+  image: tp1-worker
+  command: base_filter
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=middleware
+      - package=worker
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/middleware/src:/tp1/middleware/src
+    - ../tp1/worker/src:/tp1/worker/src
+  environment:
+    - REPLICAS=4
 
 
 services:
@@ -131,6 +131,7 @@ services:
 
   fastest_by_route:
     image: tp1-worker
+    container_name: fastest_by_route
     command: fastest_by_route
     build:
       context: ..
@@ -147,6 +148,7 @@ services:
 
   price_by_route:
     image: tp1-worker
+    container_name: price_by_route
     command: price_by_route
     build:
       context: ..
@@ -164,6 +166,41 @@ services:
   ## non-singleton workers
 
   
+  filter_by_price-1:
+    <<: *filter_by_price
+    container_name: "filter_by_price-1"
+  filter_by_price-2:
+    <<: *filter_by_price
+    container_name: "filter_by_price-2"
+  
+  general_avg_price-1:
+    <<: *general_avg_price
+    container_name: "general_avg_price-1"
+  general_avg_price-2:
+    <<: *general_avg_price
+    container_name: "general_avg_price-2"
+  
+  aggregate_by_route-1:
+    <<: *aggregate_by_route
+    container_name: "aggregate_by_route-1"
+  aggregate_by_route-2:
+    <<: *aggregate_by_route
+    container_name: "aggregate_by_route-2"
+  
+  dist_calculator-1:
+    <<: *dist_calculator
+    container_name: "dist_calculator-1"
+  dist_calculator-2:
+    <<: *dist_calculator
+    container_name: "dist_calculator-2"
+  
+  filter_by_stops-1:
+    <<: *filter_by_stops
+    container_name: "filter_by_stops-1"
+  filter_by_stops-2:
+    <<: *filter_by_stops
+    container_name: "filter_by_stops-2"
+  
   base_filter-1:
     <<: *base_filter
     container_name: "base_filter-1"
@@ -176,39 +213,4 @@ services:
   base_filter-4:
     <<: *base_filter
     container_name: "base_filter-4"
-  
-  filter_by_stops-1:
-    <<: *filter_by_stops
-    container_name: "filter_by_stops-1"
-  filter_by_stops-2:
-    <<: *filter_by_stops
-    container_name: "filter_by_stops-2"
-  
-  dist_calculator-1:
-    <<: *dist_calculator
-    container_name: "dist_calculator-1"
-  dist_calculator-2:
-    <<: *dist_calculator
-    container_name: "dist_calculator-2"
-  
-  aggregate_by_route-1:
-    <<: *aggregate_by_route
-    container_name: "aggregate_by_route-1"
-  aggregate_by_route-2:
-    <<: *aggregate_by_route
-    container_name: "aggregate_by_route-2"
-  
-  general_avg_price-1:
-    <<: *general_avg_price
-    container_name: "general_avg_price-1"
-  general_avg_price-2:
-    <<: *general_avg_price
-    container_name: "general_avg_price-2"
-  
-  filter_by_price-1:
-    <<: *filter_by_price
-    container_name: "filter_by_price-1"
-  filter_by_price-2:
-    <<: *filter_by_price
-    container_name: "filter_by_price-2"
   

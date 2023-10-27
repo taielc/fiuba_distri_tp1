@@ -1,7 +1,7 @@
 from typing import Callable
 import pika
 
-from config import MIDDLEWARE_HOST
+from config import MIDDLEWARE_HOST, MIDDLEWARE_HEARTBEAT
 
 from .middleware_type import MiddlewareType
 
@@ -12,6 +12,7 @@ class ProducerConsumer(MiddlewareType):
             pika.ConnectionParameters(
                 host=MIDDLEWARE_HOST,
                 credentials=pika.PlainCredentials("admin", "admin"),
+                heartbeat=MIDDLEWARE_HEARTBEAT,
             )
         )
         self.channel = self.connection.channel()
