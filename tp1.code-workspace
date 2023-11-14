@@ -23,6 +23,10 @@
     {
       "name": "worker",
       "path": "tp1/worker"
+    },
+    {
+      "name": "aed",
+      "path": "tp1/aed"
     }
   ],
   "settings": {

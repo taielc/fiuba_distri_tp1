@@ -14,6 +14,7 @@ BASE_BUILD_COMMAND = """docker build \
 
 INCLUDES = {
     "client": "lib",
+    "aed": "lib",
     "server": "middleware",
     "worker": "middleware",
 }

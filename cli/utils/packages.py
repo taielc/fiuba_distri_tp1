@@ -5,6 +5,7 @@ from subprocess import run, CalledProcessError
 from . import paths
 
 BUILDABLE_PACKAGES = [
+    "aed",
     "server",
     "worker",
     "client",

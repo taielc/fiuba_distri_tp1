@@ -98,6 +98,18 @@ x-base_filter: &base_filter
     - REPLICAS=4
 
 
+x-aed-common: &aed-common
+  image: tp1-aed
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      - include=lib
+      - package=aed
+  volumes:
+    - ../tp1/lib/src:/tp1/lib/src
+    - ../tp1/aed/src:/tp1/aed/src
+
 services:
   middleware:
     container_name: middleware
@@ -126,6 +138,31 @@ services:
       - ../tp1/server/src:/tp1/server/src
     depends_on:
       - middleware
+
+  ## aed nodes
+
+  
+  aed-0:
+    <<: *aed-common
+    container_name: aed-0
+    environment:
+      - NODE=0
+      - REPLICAS=3
+  
+  aed-1:
+    <<: *aed-common
+    container_name: aed-1
+    environment:
+      - NODE=1
+      - REPLICAS=3
+  
+  aed-2:
+    <<: *aed-common
+    container_name: aed-2
+    environment:
+      - NODE=2
+      - REPLICAS=3
+  
 
   ## singleton workers
 

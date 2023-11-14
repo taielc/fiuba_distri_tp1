@@ -31,6 +31,7 @@ def configure_docker_compose(worker_counts: list[tuple[str, int]] = None):
             render_template(
                 paths.DOCKER / "docker-compose-dev.yaml.j2",
                 workers=worker_counts,
+                aed_replicas=3,
             )
         )
     print("Successfully built", docker_compose_file.relative_to(paths.ROOT))
