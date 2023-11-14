@@ -13,10 +13,13 @@ Indice:
 - [TP1 de Sistemas Distribuidos I](#tp1-de-sistemas-distribuidos-i)
 - [Indice](#indice)
 - [Documentación técnica](#documentación-técnica)
+  - [Uso](#uso)
+    - [Cliente](#cliente)
   - [Introducción](#introducción)
   - [Desarrollo](#desarrollo)
   - [DAG de la solución](#dag-de-la-solución)
   - [Cómo correr el proyecto](#cómo-correr-el-proyecto)
+    - [Cliente](#cliente-1)
   - [Vistas](#vistas)
     - [Escenarios](#escenarios)
     - [Física](#física)
@@ -25,11 +28,41 @@ Indice:
     - [Procesos](#procesos)
       - [Actividad](#actividad)
       - [Secuencia](#secuencia)
-    - [Desarrollo](#desarrollo)
+    - [Desarrollo](#desarrollo-1)
       - [Paquetes](#paquetes)
-  - [Video Demostración](#video-demostración)
+  - [Video demostración](#video-demostración)
 
 # Documentación técnica
+
+## Uso
+
+- Instalación del paquete `tp`
+    ```bash
+    pip install -e .
+    ```
+    Testear la instalación con:
+    ```bash
+    tp --help
+    ```
+
+- Configuración del sistema (valores por defecto en [workers](cli/utils/workers.py))
+    ```bash
+    tp configure
+    ```
+    (Se puede verificar qué configuración aplicar con `tp configure --help`)
+
+- Ejecución del sistema
+    ```bash
+    tp run --build
+    ```
+    (Se puede verificar qué imagen construir con `tp build --help`)
+
+### Cliente
+
+- Ejecución del cliente
+    ```bash
+    tp client --build
+    ```
 
 ## Introducción
 
