@@ -12,4 +12,4 @@ AED_AMOUNT = 4
 
 node_names = []
 
-aed_data = {1:(HOST1, PORT1), 2:(HOST2, PORT2), 3:(HOST3, PORT3), 4:(HOST4, PORT4), 5:(HOST5, PORT5)}
+aed_data = {0:(HOST0, 7000), 1:(HOST1, 7002), 2:(HOST3, 7003), 3:(HOST4, 7004), 4:(HOST5, 7005)}
